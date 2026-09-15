@@ -1,0 +1,45 @@
+"""User account operations."""
+
+from __future__ import annotations
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from gym_tracker.models import User
+from gym_tracker.security import hash_password, verify_password
+
+MIN_PASSWORD_LENGTH = 8
+
+# Verified against when the email is unknown, so both failure paths take similar time.
+_DUMMY_PASSWORD_HASH = hash_password("dummy-password-for-timing")
+
+
+class UserAlreadyExistsError(Exception):
+    pass
+
+
+def normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
+def get_user_by_email(session: Session, email: str) -> User | None:
+    return session.scalar(select(User).where(User.email == normalize_email(email)))
+
+
+def create_user(session: Session, *, email: str, password: str) -> User:
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+    if get_user_by_email(session, email) is not None:
+        raise UserAlreadyExistsError(email)
+    user = User(email=normalize_email(email), password_hash=hash_password(password))
+    session.add(user)
+    session.flush()
+    return user
+
+
+def authenticate(session: Session, *, email: str, password: str) -> User | None:
+    user = get_user_by_email(session, email)
+    if user is None:
+        verify_password(password, _DUMMY_PASSWORD_HASH)
+        return None
+    return user if verify_password(password, user.password_hash) else None
