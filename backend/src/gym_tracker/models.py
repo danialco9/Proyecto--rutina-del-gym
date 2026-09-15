@@ -47,6 +47,10 @@ class Exercise(Base):
     secondary_muscles: Mapped[list[str]] = mapped_column(ARRAY(String(40)), server_default=text("'{}'"))
     equipment: Mapped[str | None] = mapped_column(String(40))
 
+    @property
+    def is_custom(self) -> bool:
+        return self.user_id is not None
+
 
 class Routine(Base):
     __tablename__ = "routines"
