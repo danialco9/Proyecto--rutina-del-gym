@@ -5,58 +5,61 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
 import { AuthShell, FormField } from './AuthForm'
-import { useCurrentUser, useLogin } from './queries'
+import { useCurrentUser, useRegister } from './queries'
 import { redirectTarget } from './redirect'
-import { loginSchema, type LoginInput } from './schema'
+import { registerSchema, type RegisterInput } from './schema'
 
-function loginErrorMessage(error: Error | null): string | null {
+function registerErrorMessage(error: Error | null): string | null {
   if (error === null) {
     return null
   }
-  return error instanceof ApiError && error.status === 401
-    ? 'Email o contraseña incorrectos'
-    : 'No se pudo conectar con el servidor. Inténtalo de nuevo.'
+  return error instanceof ApiError && error.status === 409
+    ? 'Ya existe una cuenta con ese email'
+    : 'No se pudo crear la cuenta. Inténtalo de nuevo.'
 }
 
-export function LoginPage() {
+export function RegisterPage() {
   const currentUser = useCurrentUser()
-  const login = useLogin()
+  const registerAccount = useRegister()
   const navigate = useNavigate()
   const location = useLocation()
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } })
+  } = useForm<RegisterInput>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: { email: '', password: '', confirmPassword: '' },
+  })
 
   const target = redirectTarget(location.state)
   if (currentUser.data) {
     return <Navigate to={target} replace />
   }
 
-  const onSubmit = handleSubmit(async (credentials) => {
+  const onSubmit = handleSubmit(async ({ email, password }) => {
     try {
-      await login.mutateAsync(credentials)
+      await registerAccount.mutateAsync({ email, password })
       navigate(target, { replace: true })
     } catch {
       // The error is rendered from the mutation state.
     }
   })
-  const errorMessage = loginErrorMessage(login.error)
+  const errorMessage = registerErrorMessage(registerAccount.error)
 
   return (
     <AuthShell
-      title="Inicia sesión"
-      description="Registra tus entrenos y sigue tu progreso."
+      title="Crea tu cuenta"
+      description="Empieza a registrar tus entrenos en un minuto."
       footer={
         <>
-          ¿No tienes cuenta?
+          ¿Ya tienes cuenta?
           <Link
-            to="/registro"
+            to="/login"
             state={location.state}
             className="text-primary font-medium underline-offset-4 hover:underline"
           >
-            Crear cuenta
+            Inicia sesión
           </Link>
         </>
       }
@@ -74,17 +77,30 @@ export function LoginPage() {
           id="password"
           label="Contraseña"
           type="password"
-          autoComplete="current-password"
+          autoComplete="new-password"
           error={errors.password?.message}
           {...register('password')}
+        />
+        <FormField
+          id="confirm-password"
+          label="Repite la contraseña"
+          type="password"
+          autoComplete="new-password"
+          error={errors.confirmPassword?.message}
+          {...register('confirmPassword')}
         />
         {errorMessage && (
           <Alert variant="destructive">
             <AlertDescription>{errorMessage}</AlertDescription>
           </Alert>
         )}
-        <Button type="submit" size="lg" className="h-11 w-full text-base" disabled={login.isPending}>
-          {login.isPending ? 'Entrando…' : 'Entrar'}
+        <Button
+          type="submit"
+          size="lg"
+          className="h-11 w-full text-base"
+          disabled={registerAccount.isPending}
+        >
+          {registerAccount.isPending ? 'Creando cuenta…' : 'Crear cuenta'}
         </Button>
       </form>
     </AuthShell>
