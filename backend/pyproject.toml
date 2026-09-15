@@ -8,8 +8,17 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "alembic>=1.20.0",
+    "email-validator>=2.3.0",
+    "fastapi>=0.141.1",
     "numpy>=2.5.3",
     "pandas>=3.0.5",
+    "psycopg[binary]>=3.3.5",
+    "pwdlib[argon2]>=0.3.1",
+    "pydantic-settings>=2.15.0",
+    "pyjwt>=2.14.0",
+    "sqlalchemy>=2.0.53",
+    "uvicorn[standard]>=0.53.0",
 ]
 
 [build-system]
@@ -18,15 +27,18 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.28.1",
     "mypy>=2.3.1",
     "pandas-stubs>=3.0.5.260914",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.16.7",
+    "testcontainers[postgres]>=4.15.0",
 ]
 
 [project.scripts]
 gym-report = "gym_tracker.cli:main"
+gym-admin = "gym_tracker.manage:main"
 
 [tool.ruff]
 line-length = 120
@@ -43,7 +55,11 @@ ignore = ["PLR0913"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src", "tests"]
+files = ["src", "tests", "migrations"]
+
+[[tool.mypy.overrides]]
+module = ["testcontainers.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
