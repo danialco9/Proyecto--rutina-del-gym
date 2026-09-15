@@ -1,0 +1,54 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { apiFetch } from '@/lib/api'
+import type { Exercise, LastSession, Routine, Workout, WorkoutIn } from '@/lib/types'
+
+export const queryKeys = {
+  exercises: ['exercises'] as const,
+  lastSession: (exerciseId: number) => ['exercises', exerciseId, 'last-session'] as const,
+  routines: ['routines'] as const,
+  workouts: ['workouts'] as const,
+}
+
+export function useExercises() {
+  return useQuery({
+    queryKey: queryKeys.exercises,
+    queryFn: ({ signal }) => apiFetch<Exercise[]>('/exercises', { signal }),
+    staleTime: 60 * 60_000,
+  })
+}
+
+export function useRoutines() {
+  return useQuery({
+    queryKey: queryKeys.routines,
+    queryFn: ({ signal }) => apiFetch<Routine[]>('/routines', { signal }),
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useLastSession(exerciseId: number) {
+  return useQuery({
+    queryKey: queryKeys.lastSession(exerciseId),
+    queryFn: ({ signal }) =>
+      apiFetch<LastSession | null>(`/exercises/${exerciseId}/last-session`, { signal }),
+    staleTime: 5 * 60_000,
+  })
+}
+
+export function useRecentWorkouts(limit = 5) {
+  return useQuery({
+    queryKey: [...queryKeys.workouts, { limit }],
+    queryFn: ({ signal }) => apiFetch<Workout[]>(`/workouts?limit=${limit}`, { signal }),
+  })
+}
+
+export function useSaveWorkout() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: WorkoutIn) => apiFetch<Workout>('/workouts', { method: 'POST', body: payload }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.workouts }),
+        queryClient.invalidateQueries({ queryKey: queryKeys.exercises }),
+      ]),
+  })
+}
