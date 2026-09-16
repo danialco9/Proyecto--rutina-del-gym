@@ -45,8 +45,10 @@ def _seed_demo(email: str, password: str, weeks: int) -> None:
     with get_sessionmaker()() as session:
         summary = seed_demo(session, email=email, password=password, weeks=weeks)
         session.commit()
+    # A custom password (e.g. generated in CI) is never printed, so it stays out of logs.
+    credentials = f"{email} / {password}" if password == DEMO_PASSWORD else email
     print(
-        f"Cuenta demo lista: {email} / {password} "
+        f"Cuenta demo lista: {credentials} "
         f"({summary.workouts} entrenos y {summary.measurements} medidas en {weeks} semanas)"
     )
 

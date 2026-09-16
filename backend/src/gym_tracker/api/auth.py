@@ -14,10 +14,16 @@ from gym_tracker.api.deps import (
     SettingsDep,
 )
 from gym_tracker.config import Settings
-from gym_tracker.rate_limit import LOGIN_PER_CLIENT_AND_EMAIL, LOGIN_PER_EMAIL, REGISTER_PER_CLIENT, Check
+from gym_tracker.rate_limit import (
+    DEMO_PER_CLIENT,
+    LOGIN_PER_CLIENT_AND_EMAIL,
+    LOGIN_PER_EMAIL,
+    REGISTER_PER_CLIENT,
+    Check,
+)
 from gym_tracker.schemas import LoginRequest, RegisterRequest, UserRead
 from gym_tracker.security import create_access_token
-from gym_tracker.users import UserAlreadyExistsError, authenticate, create_user, normalize_email
+from gym_tracker.users import UserAlreadyExistsError, authenticate, create_user, get_user_by_email, normalize_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -76,6 +82,23 @@ def login(
     user = authenticate(session, email=credentials.email, password=credentials.password)
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+    _set_session_cookie(response, user.id, settings)
+
+
+@router.post("/demo", status_code=status.HTTP_204_NO_CONTENT)
+def demo_login(
+    response: Response,
+    *,
+    session: SessionDep,
+    settings: SettingsDep,
+    limiter: RateLimiterDep,
+    client: ClientAddress,
+) -> None:
+    """Sign in to the public demo account without a password, when the demo is enabled."""
+    user = get_user_by_email(session, settings.demo_email) if settings.demo_enabled else None
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Demo not available")
+    limiter.hit(Check(DEMO_PER_CLIENT, ("demo", client)))
     _set_session_cookie(response, user.id, settings)
 
 
