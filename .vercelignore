@@ -1,0 +1,10 @@
+# CLI deployments only need the frontend (the project root directory is frontend/).
+backend/
+data/
+docs/
+.github/
+**/node_modules
+**/.venv
+frontend/dist
+.env
+.env.*

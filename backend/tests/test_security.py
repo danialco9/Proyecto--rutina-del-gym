@@ -6,6 +6,7 @@ from gym_tracker.config import Settings
 from gym_tracker.security import create_access_token, decode_access_token, hash_password, verify_password
 
 SETTINGS = Settings(
+    database_url="postgresql+psycopg://unused@localhost/unused",
     jwt_secret=SecretStr("test-secret-that-is-at-least-32-bytes-long"),
     access_token_ttl_minutes=15,
 )
