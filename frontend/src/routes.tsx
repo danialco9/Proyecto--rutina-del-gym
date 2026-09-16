@@ -5,6 +5,7 @@ import { RegisterPage } from '@/features/auth/RegisterPage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { HomePage } from '@/features/home/HomePage'
 import { MeasurementsPage } from '@/features/measurements/MeasurementsPage'
+import { ProgressPage } from '@/features/progress/ProgressPage'
 import { RoutineEditorPage } from '@/features/routines/RoutineEditorPage'
 import { RoutinesPage } from '@/features/routines/RoutinesPage'
 import { WorkoutPage } from '@/features/workout/WorkoutPage'
@@ -24,6 +25,7 @@ export const routes: RouteObject[] = [
           { path: 'rutinas/nueva', element: <RoutineEditorPage /> },
           { path: 'rutinas/:routineId', element: <RoutineEditorPage /> },
           { path: 'medidas', element: <MeasurementsPage /> },
+          { path: 'progreso', element: <ProgressPage /> },
         ],
       },
     ],

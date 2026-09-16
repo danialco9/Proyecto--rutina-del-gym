@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { progressKeys } from '@/features/progress/queries'
 import { queryKeys } from '@/features/workout/queries'
 import { apiFetch } from '@/lib/api'
 import type { Routine, RoutineIn } from '@/lib/types'
@@ -16,7 +17,12 @@ export function useUpdateRoutine(routineId: number | undefined) {
   return useMutation({
     mutationFn: (payload: RoutineIn) =>
       apiFetch<Routine>(`/routines/${routineId}`, { method: 'PUT', body: payload }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.routines }),
+    // Routine targets feed the progression recommendations.
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: queryKeys.routines }),
+        queryClient.invalidateQueries({ queryKey: progressKeys.all }),
+      ]),
   })
 }
 
@@ -29,6 +35,7 @@ export function useDeleteRoutine() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.routines }),
         queryClient.invalidateQueries({ queryKey: queryKeys.workouts }),
+        queryClient.invalidateQueries({ queryKey: progressKeys.all }),
       ]),
   })
 }

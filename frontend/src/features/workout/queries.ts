@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { progressKeys } from '@/features/progress/queries'
 import { apiFetch } from '@/lib/api'
 import type { Exercise, LastSession, Routine, Workout, WorkoutIn } from '@/lib/types'
 
@@ -49,6 +50,7 @@ export function useSaveWorkout() {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.workouts }),
         queryClient.invalidateQueries({ queryKey: queryKeys.exercises }),
+        queryClient.invalidateQueries({ queryKey: progressKeys.all }),
       ]),
   })
 }

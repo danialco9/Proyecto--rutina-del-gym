@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { progressKeys } from '@/features/progress/queries'
 import { apiFetch } from '@/lib/api'
 import type { BodyMeasurement, BodyMeasurementIn } from '@/lib/types'
 
@@ -27,7 +28,11 @@ export function useSaveMeasurement() {
       id === undefined
         ? apiFetch<BodyMeasurement>('/measurements', { method: 'POST', body: payload })
         : apiFetch<BodyMeasurement>(`/measurements/${id}`, { method: 'PUT', body: payload }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: measurementKeys.all }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: measurementKeys.all }),
+        queryClient.invalidateQueries({ queryKey: progressKeys.all }),
+      ]),
   })
 }
 
@@ -35,6 +40,10 @@ export function useDeleteMeasurement() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: number) => apiFetch<void>(`/measurements/${id}`, { method: 'DELETE' }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: measurementKeys.all }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: measurementKeys.all }),
+        queryClient.invalidateQueries({ queryKey: progressKeys.all }),
+      ]),
   })
 }
