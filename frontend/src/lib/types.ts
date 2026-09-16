@@ -122,3 +122,5 @@ export interface BodyMeasurement {
   thigh_cm: number | null
   notes: string | null
 }
+
+export type BodyMeasurementIn = Omit<BodyMeasurement, 'id'>
