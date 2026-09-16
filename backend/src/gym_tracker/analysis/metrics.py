@@ -103,10 +103,13 @@ def weekly_weight_change(body: pd.DataFrame, lookback_days: int = 28) -> float |
 
 
 def detect_plateaus(bests: pd.DataFrame, window: int = 3, min_improvement: float = 0.01) -> pd.DataFrame:
-    """Flag exercises whose last ``window`` sessions did not beat the previous best e1RM.
+    """Flag exercises that stopped progressing over their last ``window`` sessions.
 
-    An exercise counts as stalled when its best recent e1RM is below the earlier best
-    improved by ``min_improvement`` (1% by default). Needs more than ``window`` sessions.
+    Only the current block counts: the sessions since the top weight last went down (a deload or
+    a reset), so building the load back up is never mistaken for a plateau. Within the block, an
+    exercise is stalled when its best recent e1RM is below the earlier best improved by
+    ``min_improvement`` (1% by default) and the top weight did not go up during the window.
+    Exercises with ``window`` sessions or fewer are skipped; shorter blocks are never stalled.
     """
     columns = ["exercise_id", "previous_best_kg", "recent_best_kg", "stalled"]
     rows = []
@@ -114,14 +117,24 @@ def detect_plateaus(bests: pd.DataFrame, window: int = 3, min_improvement: float
         if len(group) <= window:
             continue
         history = group["best_e1rm_kg"].to_numpy(dtype=float)
-        previous_best = float(history[:-window].max())
-        recent_best = float(history[-window:].max())
+        top_weights = group["top_weight_kg"].to_numpy(dtype=float)
+        reductions = np.flatnonzero(np.diff(top_weights) < 0)
+        block_start = int(reductions[-1]) + 1 if reductions.size else 0
+        block, block_weights = history[block_start:], top_weights[block_start:]
+        if len(block) <= window:
+            rows.append(
+                {"exercise_id": exercise_id, "previous_best_kg": None, "recent_best_kg": None, "stalled": False}
+            )
+            continue
+        previous_best = float(block[:-window].max())
+        recent_best = float(block[-window:].max())
+        load_increased = bool(block_weights[-1] > block_weights[-window - 1])
         rows.append(
             {
                 "exercise_id": exercise_id,
                 "previous_best_kg": previous_best,
                 "recent_best_kg": recent_best,
-                "stalled": recent_best < previous_best * (1 + min_improvement),
+                "stalled": recent_best < previous_best * (1 + min_improvement) and not load_increased,
             }
         )
     return pd.DataFrame(rows, columns=columns)
