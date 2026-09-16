@@ -1,4 +1,4 @@
-import { ClipboardListIcon, DumbbellIcon, HouseIcon, LogOutIcon } from 'lucide-react'
+import { ClipboardListIcon, DumbbellIcon, HouseIcon, LogOutIcon, ScaleIcon } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { useLogout } from '@/features/auth/queries'
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/', label: 'Inicio', icon: HouseIcon, end: true },
   { to: '/entrenar', label: 'Entrenar', icon: DumbbellIcon, end: false },
   { to: '/rutinas', label: 'Rutinas', icon: ClipboardListIcon, end: false },
+  { to: '/medidas', label: 'Medidas', icon: ScaleIcon, end: false },
 ] as const
 
 export function AppLayout() {
@@ -36,7 +37,7 @@ export function AppLayout() {
         aria-label="Principal"
         className="bg-background/95 fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur"
       >
-        <ul className="mx-auto grid max-w-2xl grid-cols-3">
+        <ul className="mx-auto grid max-w-2xl grid-cols-4">
           {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
             <li key={to}>
               <NavLink

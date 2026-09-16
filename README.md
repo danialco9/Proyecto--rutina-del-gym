@@ -54,7 +54,7 @@ pnpm dev                      # http://localhost:5173
 - [x] Frontend: login and live workout logging (mobile first, last performance, rest timer, offline draft)
 - [x] Account registration
 - [x] Frontend: routines screen (create, edit, reorder exercises, optional targets)
-- [ ] Frontend: body measurements screen
+- [x] Frontend: body measurements screen (quick weight entry, weight chart, history)
 - [ ] Performance dashboard with charts and recommendations
 - [ ] Deployment and demo data
 - [ ] Smarter recommendations, offline PWA, natural-language workout logging

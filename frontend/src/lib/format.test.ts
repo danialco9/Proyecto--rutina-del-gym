@@ -1,10 +1,29 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuration, formatKg, formatSeconds, plural } from './format'
+import {
+  formatDay,
+  formatDuration,
+  formatKg,
+  formatSeconds,
+  formatShortDay,
+  formatSignedKg,
+  plural,
+} from './format'
 
 describe('format', () => {
   it('formats weights with the Spanish decimal separator', () => {
     expect(formatKg(52.5)).toBe('52,5 kg')
     expect(formatKg(110)).toBe('110 kg')
+  })
+
+  it('formats signed weight changes', () => {
+    expect(formatSignedKg(-0.3)).toBe('-0,3 kg')
+    expect(formatSignedKg(1.25)).toBe('+1,25 kg')
+    expect(formatSignedKg(0)).toBe('0 kg')
+  })
+
+  it('formats calendar dates without shifting the day', () => {
+    expect(formatShortDay('2026-09-01')).toBe('1/9')
+    expect(formatDay('2026-09-16')).toMatch(/16/)
   })
 
   it('formats rest countdowns', () => {
