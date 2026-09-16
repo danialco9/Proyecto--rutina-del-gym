@@ -51,7 +51,8 @@ pnpm dev                      # http://localhost:5173
 - [x] App foundation: frontend shell, PostgreSQL in Docker, CI
 - [x] Backend API foundation: models, migrations, cookie-based JWT auth, health check
 - [x] Backend API: CRUD for exercises, routines, workouts and measurements; exercise catalog seed
-- [ ] Frontend: log a workout live (mobile first), routines, measurements
+- [x] Frontend: login and live workout logging (mobile first, last performance, rest timer, offline draft)
+- [ ] Frontend: routines and body measurements screens
 - [ ] Performance dashboard with charts and recommendations
 - [ ] Deployment and demo data
 - [ ] Smarter recommendations, offline PWA, natural-language workout logging

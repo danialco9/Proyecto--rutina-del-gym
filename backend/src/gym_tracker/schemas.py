@@ -168,6 +168,12 @@ class WorkoutRead(ORMModel):
     sets: list[WorkoutSetRead]
 
 
+class LastSessionRead(BaseModel):
+    workout_id: int
+    started_at: datetime
+    sets: list[WorkoutSetRead]
+
+
 # Body measurements
 
 MEASUREMENT_FIELDS = ("weight_kg", "body_fat_pct", "waist_cm", "chest_cm", "arm_cm", "thigh_cm")

@@ -12,6 +12,12 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
+  server: {
+    // Same-origin API calls keep the auth cookie first-party (SameSite=Lax).
+    proxy: {
+      '/api': 'http://localhost:8000',
+    },
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
