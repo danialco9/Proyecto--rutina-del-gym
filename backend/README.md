@@ -22,6 +22,11 @@ FastAPI service and analytics engine for the gym tracker.
   constraints (RPE 1–10, non-negative loads, one measurement per day, unique set numbers).
 - **Security**: Argon2 password hashing and signed tokens in an `HttpOnly`, `SameSite=Lax` cookie.
   Every resource is scoped to the authenticated user.
+- **Rate limiting** (`limits`, moving window): login allows 5 attempts per minute per client
+  address and email, and 20 per hour per email; registration allows 5 per hour per address.
+  Excess requests get `429` with `Retry-After`. Counters live in memory by default
+  (`GYM_RATE_LIMIT_STORAGE`, e.g. `redis://...` for several instances). Behind a reverse proxy, run
+  uvicorn with `--proxy-headers --forwarded-allow-ips=<proxy>` so limits apply to the real client IP.
 - **Analytics** (`gym_tracker.analysis`): estimated 1RM (Epley), personal records, weekly hard
   sets per muscle group, body weight trend, plateau detection and rule-based double progression.
   Routines plan each set (reps, weight, RPE), and recommendations compare the last session with
