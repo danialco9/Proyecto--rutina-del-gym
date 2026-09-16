@@ -55,6 +55,7 @@ pnpm dev                      # http://localhost:5173
 - [x] Account registration
 - [x] Frontend: routines screen (create, edit, reorder exercises, optional targets)
 - [x] Frontend: body measurements screen (quick weight entry, weight chart, history)
+- [x] Progress analytics API (overview and per-exercise history) and demo account
 - [ ] Performance dashboard with charts and recommendations
 - [ ] Deployment and demo data
 - [ ] Smarter recommendations, offline PWA, natural-language workout logging

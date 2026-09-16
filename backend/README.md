@@ -14,6 +14,7 @@ FastAPI service and analytics engine for the gym tracker.
   | Routines | `GET /routines`, `GET /routines/{id}`, `POST /routines`, `PUT /routines/{id}`, `DELETE /routines/{id}` |
   | Workouts | `GET /workouts?limit=&offset=`, `GET /workouts/{id}`, `POST /workouts`, `PUT /workouts/{id}`, `DELETE /workouts/{id}`, `POST /workouts/{id}/sets`, `DELETE /workouts/{id}/sets/{set_id}` |
   | Measurements | `GET /measurements?date_from=&date_to=`, `POST /measurements`, `PUT /measurements/{id}`, `DELETE /measurements/{id}` |
+  | Progress | `GET /progress/overview`, `GET /progress/exercises/{id}` |
 
 - **Exercise catalog**: 74 built-in exercises with Spanish names and English slugs, shared by all
   users and read-only. Users can add their own custom exercises.
@@ -23,6 +24,13 @@ FastAPI service and analytics engine for the gym tracker.
   Every resource is scoped to the authenticated user.
 - **Analytics** (`gym_tracker.analysis`): estimated 1RM (Epley), personal records, weekly hard
   sets per muscle group, body weight trend, plateau detection and rule-based double progression.
+  The same pandas code runs on the CSV log and, through `analysis.database`, on each user's data
+  in PostgreSQL to serve the progress endpoints. A plateau is judged within the current block
+  (since the top weight last went down), so rebuilding after a deload is not flagged again.
+- **Demo account**: `gym-admin seed-demo` creates `demo@gymtracker.dev` (password
+  `demo-gym-tracker`) with three routines and 12 weeks of simulated training and weigh-ins. Each
+  lift progresses with the app's own rules against a hidden strength level, and one of them stalls.
+  Running it again recreates the account.
 
 ## Development
 
@@ -35,6 +43,7 @@ docker compose up -d --wait               # from the repo root: start PostgreSQL
 uv run alembic upgrade head               # apply migrations
 uv run gym-admin seed-catalog             # load or update the exercise catalog
 uv run gym-admin create-user --email you@example.com
+uv run gym-admin seed-demo                # optional: demo account with 12 weeks of data
 uv run uvicorn gym_tracker.main:create_app --factory --reload
 
 uv run gym-report                         # training report from ../data (Spanish output)
