@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
 import { AuthShell, FormField } from './AuthForm'
+import { tooManyAttemptsMessage } from './errors'
 import { useCurrentUser, useLogin } from './queries'
 import { redirectTarget } from './redirect'
 import { loginSchema, type LoginInput } from './schema'
@@ -13,9 +14,10 @@ function loginErrorMessage(error: Error | null): string | null {
   if (error === null) {
     return null
   }
-  return error instanceof ApiError && error.status === 401
-    ? 'Email o contraseña incorrectos'
-    : 'No se pudo conectar con el servidor. Inténtalo de nuevo.'
+  if (error instanceof ApiError && error.status === 401) {
+    return 'Email o contraseña incorrectos'
+  }
+  return tooManyAttemptsMessage(error) ?? 'No se pudo conectar con el servidor. Inténtalo de nuevo.'
 }
 
 export function LoginPage() {

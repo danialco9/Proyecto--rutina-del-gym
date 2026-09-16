@@ -9,13 +9,21 @@ interface RequestOptions {
 export class ApiError extends Error {
   readonly status: number
   readonly detail: unknown
+  /** From the `Retry-After` header (in seconds), sent with `429 Too Many Requests`. */
+  readonly retryAfterSeconds: number | null
 
-  constructor(status: number, detail: unknown) {
+  constructor(status: number, detail: unknown, retryAfterSeconds: number | null = null) {
     super(typeof detail === 'string' ? detail : `Request failed with status ${status}`)
     this.name = 'ApiError'
     this.status = status
     this.detail = detail
+    this.retryAfterSeconds = retryAfterSeconds
   }
+}
+
+function readRetryAfter(response: Response): number | null {
+  const seconds = Number(response.headers.get('Retry-After') ?? Number.NaN)
+  return Number.isInteger(seconds) && seconds >= 0 ? seconds : null
 }
 
 async function readDetail(response: Response): Promise<unknown> {
@@ -40,7 +48,7 @@ export async function apiFetch<T>(
     body: body === undefined ? undefined : JSON.stringify(body),
   })
   if (!response.ok) {
-    throw new ApiError(response.status, await readDetail(response))
+    throw new ApiError(response.status, await readDetail(response), readRetryAfter(response))
   }
   if (response.status === 204) {
     return undefined as T

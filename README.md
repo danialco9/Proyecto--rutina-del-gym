@@ -57,5 +57,6 @@ pnpm dev                      # http://localhost:5173
 - [x] Frontend: body measurements screen (quick weight entry, weight chart, history)
 - [x] Progress analytics API (overview and per-exercise history) and demo account
 - [x] Frontend: progress dashboard (recommendations, per-exercise charts, weekly volume, body weight)
+- [x] Rate limiting on login and registration
 - [ ] Deployment and demo data
 - [ ] Smarter recommendations, offline PWA, natural-language workout logging

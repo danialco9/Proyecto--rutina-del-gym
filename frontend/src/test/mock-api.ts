@@ -3,6 +3,7 @@ import { vi } from 'vitest'
 interface MockResponse {
   status?: number
   body?: unknown
+  headers?: Record<string, string>
 }
 
 type MockHandler = MockResponse | ((request: { body: unknown }) => MockResponse)
@@ -35,7 +36,7 @@ export function mockApi(handlers: Record<string, MockHandler>): ApiCall[] {
       }
       return new Response(JSON.stringify(response.body ?? null), {
         status,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...response.headers },
       })
     }),
   )
