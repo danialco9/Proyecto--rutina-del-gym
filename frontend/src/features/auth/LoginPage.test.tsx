@@ -41,6 +41,26 @@ describe('LoginPage', () => {
     expect(await screen.findByText('Email o contraseña incorrectos')).toBeInTheDocument()
   })
 
+  it('asks to wait after too many attempts', async () => {
+    mockApi({
+      'GET /auth/me': SIGNED_OUT,
+      'POST /auth/login': {
+        status: 429,
+        body: { detail: 'Too many attempts, try again later' },
+        headers: { 'Retry-After': '42' },
+      },
+    })
+    const { user } = renderRoute('/login')
+
+    await user.type(await screen.findByLabelText('Email'), 'dani@example.com')
+    await user.type(screen.getByLabelText('Contraseña'), 'wrong-password')
+    await user.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    expect(
+      await screen.findByText('Demasiados intentos. Vuelve a probar en 42 segundos.'),
+    ).toBeInTheDocument()
+  })
+
   it('signs in and returns to the requested page', async () => {
     let signedIn = false
     const calls = mockApi({

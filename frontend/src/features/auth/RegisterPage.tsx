@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { ApiError } from '@/lib/api'
 import { AuthShell, FormField } from './AuthForm'
+import { tooManyAttemptsMessage } from './errors'
 import { useCurrentUser, useRegister } from './queries'
 import { redirectTarget } from './redirect'
 import { registerSchema, type RegisterInput } from './schema'
@@ -13,9 +14,10 @@ function registerErrorMessage(error: Error | null): string | null {
   if (error === null) {
     return null
   }
-  return error instanceof ApiError && error.status === 409
-    ? 'Ya existe una cuenta con ese email'
-    : 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+  if (error instanceof ApiError && error.status === 409) {
+    return 'Ya existe una cuenta con ese email'
+  }
+  return tooManyAttemptsMessage(error) ?? 'No se pudo crear la cuenta. Inténtalo de nuevo.'
 }
 
 export function RegisterPage() {

@@ -29,6 +29,19 @@ describe('apiFetch', () => {
     await expect(apiFetch('/auth/logout', { method: 'POST' })).resolves.toBeUndefined()
   })
 
+  it('exposes Retry-After on rate-limited responses', async () => {
+    const limited = new Response(JSON.stringify({ detail: 'Too many attempts' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': '30' },
+    })
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(limited))
+
+    await expect(apiFetch('/auth/login', { method: 'POST', body: {} })).rejects.toMatchObject({
+      status: 429,
+      retryAfterSeconds: 30,
+    })
+  })
+
   it('throws ApiError with the server detail', async () => {
     vi.stubGlobal(
       'fetch',

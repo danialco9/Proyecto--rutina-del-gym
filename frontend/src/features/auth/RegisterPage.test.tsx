@@ -48,6 +48,25 @@ describe('RegisterPage', () => {
     expect(await screen.findByText('Ya existe una cuenta con ese email')).toBeInTheDocument()
   })
 
+  it('asks to wait after too many sign-ups', async () => {
+    mockApi({
+      'GET /auth/me': SIGNED_OUT,
+      'POST /auth/register': {
+        status: 429,
+        body: { detail: 'Too many attempts, try again later' },
+        headers: { 'Retry-After': '3540' },
+      },
+    })
+    const { user } = renderRoute('/registro')
+
+    await user.type(await screen.findByLabelText('Email'), 'dani@example.com')
+    await user.type(screen.getByLabelText('Contraseña'), 'a-strong-password')
+    await user.type(screen.getByLabelText('Repite la contraseña'), 'a-strong-password')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    expect(await screen.findByText('Demasiados intentos. Vuelve a probar en 59 minutos.')).toBeInTheDocument()
+  })
+
   it('creates the account and opens the app', async () => {
     const calls = mockApi({
       'GET /auth/me': SIGNED_OUT,
