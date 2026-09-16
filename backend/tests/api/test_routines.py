@@ -16,16 +16,13 @@ def leg_day(session: Session) -> dict[str, object]:
         "exercises": [
             {
                 "exercise_id": catalog_exercise_id(session, "back-squat"),
-                "target_sets": 4,
-                "target_reps": 8,
-                "target_weight_kg": 60,
+                "sets": [
+                    {"target_reps": 10, "target_weight_kg": 60},
+                    {"target_reps": 8, "target_weight_kg": 70},
+                    {"target_reps": 6, "target_weight_kg": 80, "target_rpe": 8.5},
+                ],
             },
-            {
-                "exercise_id": catalog_exercise_id(session, "leg-press"),
-                "target_sets": 4,
-                "target_reps": 12,
-                "target_rpe": 8,
-            },
+            {"exercise_id": catalog_exercise_id(session, "leg-press"), "sets": [{"target_reps": 12}] * 2},
         ],
     }
 
@@ -37,8 +34,12 @@ def test_create_and_list_routine(auth_client: TestClient, session: Session) -> N
     routine = response.json()
     assert [item["position"] for item in routine["exercises"]] == [1, 2]
     assert routine["exercises"][0]["exercise"]["slug"] == "back-squat"
-    assert routine["exercises"][0]["target_weight_kg"] == 60.0
-    assert routine["exercises"][1]["target_rpe"] == 8.0
+    assert routine["exercises"][0]["sets"] == [
+        {"set_number": 1, "target_reps": 10, "target_weight_kg": 60.0, "target_rpe": None},
+        {"set_number": 2, "target_reps": 8, "target_weight_kg": 70.0, "target_rpe": None},
+        {"set_number": 3, "target_reps": 6, "target_weight_kg": 80.0, "target_rpe": 8.5},
+    ]
+    assert [item["target_reps"] for item in routine["exercises"][1]["sets"]] == [12, 12]
     assert [item["name"] for item in auth_client.get("/api/routines").json()] == ["Pierna"]
 
 
@@ -46,7 +47,7 @@ def test_replace_routine_exercises(auth_client: TestClient, session: Session) ->
     routine_id = auth_client.post("/api/routines", json=leg_day(session)).json()["id"]
     payload = {
         "name": "Pierna A",
-        "exercises": [{"exercise_id": catalog_exercise_id(session, "leg-extension"), "target_sets": 3}],
+        "exercises": [{"exercise_id": catalog_exercise_id(session, "leg-extension"), "sets": [{}, {}, {}]}],
     }
 
     response = auth_client.put(f"/api/routines/{routine_id}", json=payload)
@@ -56,6 +57,17 @@ def test_replace_routine_exercises(auth_client: TestClient, session: Session) ->
     assert routine["name"] == "Pierna A"
     assert routine["description"] is None
     assert [(item["position"], item["exercise"]["slug"]) for item in routine["exercises"]] == [(1, "leg-extension")]
+    assert [planned["set_number"] for planned in routine["exercises"][0]["sets"]] == [1, 2, 3]
+
+
+def test_planned_sets_are_validated(auth_client: TestClient, session: Session) -> None:
+    squat = catalog_exercise_id(session, "back-squat")
+
+    for invalid in ({"target_reps": 0}, {"target_weight_kg": -1}, {"target_rpe": 11}):
+        payload = {"name": "Pierna", "exercises": [{"exercise_id": squat, "sets": [invalid]}]}
+        assert auth_client.post("/api/routines", json=payload).status_code == 422
+    too_many = {"name": "Pierna", "exercises": [{"exercise_id": squat, "sets": [{}] * 21}]}
+    assert auth_client.post("/api/routines", json=too_many).status_code == 422
 
 
 def test_duplicate_routine_name_conflicts(auth_client: TestClient, session: Session) -> None:

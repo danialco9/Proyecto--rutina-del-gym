@@ -11,6 +11,8 @@ import pandas as pd
 
 from gym_tracker.analysis import (
     Action,
+    PerformedSet,
+    PlannedSet,
     Recommendation,
     TrainingLog,
     load_training_log,
@@ -36,12 +38,19 @@ def _format_kg(value: float) -> str:
     return f"{value:g} kg"
 
 
+def _format_sets(sets: tuple[PlannedSet, ...] | tuple[PerformedSet, ...]) -> str:
+    parts = []
+    for item in sets:
+        weight = "?" if item.weight_kg is None else f"{item.weight_kg:g}"
+        parts.append(f"{weight}x{'?' if item.reps is None else item.reps}")
+    return " · ".join(parts)
+
+
 def _format_recommendation(item: Recommendation) -> str:
-    reps = "/".join(str(rep) for rep in item.last_reps)
-    target = f" (objetivo {item.target_reps})" if item.target_reps is not None else ""
+    target = f" (objetivo {_format_sets(item.target_sets)})" if item.target_sets else ""
     return (
-        f"- {item.exercise_name}: último {_format_kg(item.last_weight_kg)} x {reps}{target} -> "
-        f"{ACTION_LABELS[item.action]}: {_format_kg(item.suggested_weight_kg)}"
+        f"- {item.exercise_name}: último {_format_sets(item.last_sets)}{target} -> "
+        f"{ACTION_LABELS[item.action]}: {_format_sets(item.suggested_sets)}"
     )
 
 

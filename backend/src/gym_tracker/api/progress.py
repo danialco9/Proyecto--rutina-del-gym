@@ -30,7 +30,9 @@ from gym_tracker.schemas import (
     ExerciseProgressRead,
     ExerciseSessionRead,
     MuscleVolumeRead,
+    PerformedSetRead,
     PersonalRecordRead,
+    PlannedSetRead,
     ProgressOverviewRead,
     RecommendationRead,
     WeeklyVolumeRead,
@@ -66,10 +68,9 @@ def _recommendations(log: TrainingLog, work: pd.DataFrame) -> list[Recommendatio
             exercise_name=item.exercise_name,
             action=item.action,
             last_performed_on=last_dates[item.exercise_id],
-            last_weight_kg=item.last_weight_kg,
-            last_reps=list(item.last_reps),
-            target_reps=item.target_reps,
-            suggested_weight_kg=item.suggested_weight_kg,
+            last_sets=[PerformedSetRead(reps=s.reps, weight_kg=s.weight_kg, rpe=s.rpe) for s in item.last_sets],
+            target_sets=[PlannedSetRead(reps=s.reps, weight_kg=s.weight_kg) for s in item.target_sets],
+            suggested_sets=[PlannedSetRead(reps=s.reps, weight_kg=s.weight_kg) for s in item.suggested_sets],
         )
         for item in recommend(log)
     ]

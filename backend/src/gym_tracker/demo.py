@@ -12,14 +12,24 @@ import math
 import random
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 
 import pandas as pd
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from gym_tracker.analysis import ProgressionRules, decide_progression, detect_plateaus
+from gym_tracker.analysis import PerformedSet, PlannedSet, ProgressionRules, decide_progression, detect_plateaus
 from gym_tracker.catalog import seed_catalog
-from gym_tracker.models import BodyMeasurement, Exercise, Routine, RoutineExercise, User, Workout, WorkoutSet
+from gym_tracker.models import (
+    BodyMeasurement,
+    Exercise,
+    Routine,
+    RoutineExercise,
+    RoutineSet,
+    User,
+    Workout,
+    WorkoutSet,
+)
 from gym_tracker.users import create_user, normalize_email
 
 DEMO_EMAIL = "demo@gymtracker.dev"
@@ -37,35 +47,47 @@ MONDAY, TUESDAY, WEDNESDAY, FRIDAY, SUNDAY = 0, 1, 2, 4, 6
 
 @dataclass(frozen=True)
 class DemoLift:
+    """A lift in a demo routine: target reps per set, starting at ``start_weight_kg`` and adding
+    ``step_kg`` each set (0 for straight sets)."""
+
     slug: str
-    target_sets: int
-    target_reps: int
+    reps: tuple[int, ...]
     start_weight_kg: float
+    step_kg: float = 0.0
     gain_per_session: float = 0.012
     stalls_after_week: int | None = None
     warmup: bool = False
 
+    @property
+    def planned_weights(self) -> list[float]:
+        return [self.start_weight_kg + self.step_kg * index for index in range(len(self.reps))]
+
+
+def _straight(sets: int, reps: int) -> tuple[int, ...]:
+    return (reps,) * sets
+
 
 ROUTINES: dict[str, tuple[DemoLift, ...]] = {
     "Torso A": (
-        DemoLift("bench-press", 3, 8, 60, gain_per_session=0.012, warmup=True),
-        DemoLift("lat-pulldown", 3, 10, 50),
-        DemoLift("overhead-press", 3, 8, 37.5, stalls_after_week=5),
-        DemoLift("seated-cable-row", 3, 10, 50),
-        DemoLift("triceps-pushdown", 3, 12, 22.5),
+        DemoLift("bench-press", _straight(3, 8), 60, gain_per_session=0.012, warmup=True),
+        DemoLift("lat-pulldown", _straight(3, 10), 50),
+        DemoLift("overhead-press", _straight(3, 8), 37.5, stalls_after_week=5),
+        DemoLift("seated-cable-row", _straight(3, 10), 50),
+        DemoLift("triceps-pushdown", _straight(3, 12), 22.5),
     ),
     "Torso B": (
-        DemoLift("incline-dumbbell-press", 3, 10, 22.5),
-        DemoLift("machine-row", 3, 10, 55),
-        DemoLift("barbell-curl", 3, 10, 25, gain_per_session=0.008),
-        DemoLift("face-pull", 3, 15, 20, gain_per_session=0.006),
+        DemoLift("incline-dumbbell-press", _straight(3, 10), 22.5),
+        DemoLift("machine-row", _straight(3, 10), 55),
+        DemoLift("barbell-curl", _straight(3, 10), 25, gain_per_session=0.008),
+        DemoLift("face-pull", _straight(3, 15), 20, gain_per_session=0.006),
     ),
     "Pierna": (
-        DemoLift("back-squat", 4, 6, 80, gain_per_session=0.015, warmup=True),
-        DemoLift("romanian-deadlift", 3, 8, 70),
-        DemoLift("leg-press", 3, 12, 140),
-        DemoLift("lying-leg-curl", 3, 12, 35),
-        DemoLift("standing-calf-raise", 4, 12, 60, gain_per_session=0.005),
+        DemoLift("back-squat", _straight(4, 6), 80, gain_per_session=0.015, warmup=True),
+        DemoLift("romanian-deadlift", _straight(3, 8), 70),
+        # A pyramid: the weight goes up and the reps down from set to set.
+        DemoLift("leg-press", (12, 10, 8), 120, step_kg=10),
+        DemoLift("lying-leg-curl", _straight(3, 12), 35),
+        DemoLift("standing-calf-raise", _straight(4, 12), 60, gain_per_session=0.005),
     ),
 }
 
@@ -80,7 +102,7 @@ ROUTINE_DESCRIPTIONS = {
 class _LiftState:
     lift: DemoLift
     capacity_kg: float
-    weight_kg: float
+    weights_kg: list[float]
     history: list[tuple[float, float]]  # (best e1RM, top weight) per session
 
 
@@ -108,22 +130,21 @@ def _simulate_sets(state: _LiftState, week: int, rng: random.Random, rules: Prog
 
     sets: list[WorkoutSet] = []
     if lift.warmup:
-        warmup_weight = _round_to(state.weight_kg * 0.5, rules.load_increment_kg)
+        warmup_weight = _round_to(state.weights_kg[0] * 0.5, rules.load_increment_kg)
         sets.append(WorkoutSet(set_number=1, reps=8, weight_kg=warmup_weight, rpe=None, is_warmup=True))
 
-    reps_done: list[int] = []
-    rpes: list[float] = []
-    for index in range(lift.target_sets):
+    performed: list[PerformedSet] = []
+    for index, (target_reps, weight) in enumerate(zip(lift.reps, state.weights_kg, strict=True)):
         available = day_form * (1 - FATIGUE_PER_SET * index)
-        max_reps = max(MIN_REPS, math.floor(EPLEY_REPS_DIVISOR * (available / state.weight_kg - 1)))
-        # Stop 1-2 reps short of failure, a little past the target at most.
-        reps = max(MIN_REPS, min(max_reps - rng.choice((1, 2, 2, 3)), lift.target_reps + EXTRA_REPS_OVER_TARGET))
+        max_reps = max(MIN_REPS, math.floor(EPLEY_REPS_DIVISOR * (available / weight - 1)))
+        # Stop 1-3 reps short of failure, a little past the target at most.
+        reps = max(MIN_REPS, min(max_reps - rng.choice((1, 2, 2, 3)), target_reps + EXTRA_REPS_OVER_TARGET))
         rpe = min(10.0, max(6.0, round((10 - (max_reps - reps)) * 2) / 2))
-        reps_done.append(reps)
-        rpes.append(rpe)
-        sets.append(WorkoutSet(set_number=len(sets) + 1, reps=reps, weight_kg=state.weight_kg, rpe=rpe))
+        performed.append(PerformedSet(reps=reps, weight_kg=weight, rpe=rpe))
+        sets.append(WorkoutSet(set_number=len(sets) + 1, reps=reps, weight_kg=weight, rpe=rpe))
 
-    state.history.append((max(_estimate_1rm(state.weight_kg, reps) for reps in reps_done), state.weight_kg))
+    best = max(_estimate_1rm(item.weight_kg, item.reps) for item in performed)
+    state.history.append((best, max(state.weights_kg)))
     bests = pd.DataFrame(
         {
             "exercise_id": lift.slug,
@@ -133,17 +154,13 @@ def _simulate_sets(state: _LiftState, week: int, rng: random.Random, rules: Prog
         }
     )
     plateaus = detect_plateaus(bests, window=rules.plateau_window)
-    stalled = bool(plateaus["stalled"].any())
-    _, next_weight = decide_progression(
-        top_weight_kg=state.weight_kg,
-        reps=reps_done,
-        max_rpe=max(rpes),
-        target_sets=lift.target_sets,
-        target_reps=lift.target_reps,
-        stalled=stalled,
-        rules=rules,
+    planned = [
+        PlannedSet(reps=reps, weight_kg=weight) for reps, weight in zip(lift.reps, lift.planned_weights, strict=True)
+    ]
+    _, suggested = decide_progression(
+        performed=performed, planned=planned, stalled=bool(plateaus["stalled"].any()), rules=rules
     )
-    state.weight_kg = next_weight
+    state.weights_kg = [item.weight_kg or 0.0 for item in suggested]
     return sets
 
 
@@ -198,12 +215,16 @@ def seed_demo(
                 RoutineExercise(
                     exercise_id=exercise_ids[lift.slug],
                     position=position,
-                    target_sets=lift.target_sets,
-                    target_reps=lift.target_reps,
+                    sets=[
+                        RoutineSet(set_number=number, target_reps=reps, target_weight_kg=Decimal(str(weight)))
+                        for number, (reps, weight) in enumerate(zip(lift.reps, lift.planned_weights, strict=True), 1)
+                    ],
                 )
             )
-            capacity = lift.start_weight_kg * (1 + (lift.target_reps + 2) / EPLEY_REPS_DIVISOR)
-            states[lift.slug] = _LiftState(lift, capacity, lift.start_weight_kg, history=[])
+            weights = lift.planned_weights
+            # Strong enough for the heaviest planned set with a couple of reps to spare.
+            capacity = weights[-1] * (1 + (lift.reps[-1] + 2) / EPLEY_REPS_DIVISOR)
+            states[lift.slug] = _LiftState(lift, capacity, weights, history=[])
         routines[name] = routine
         session.add(routine)
     session.flush()

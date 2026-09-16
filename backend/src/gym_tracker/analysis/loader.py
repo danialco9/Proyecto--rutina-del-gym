@@ -28,7 +28,7 @@ SCHEMAS: dict[str, dict[str, ColumnKind]] = {
         "routine_id": "str",
         "exercise_id": "str",
         "position": "float",
-        "target_sets": "float",
+        "set_number": "float",
         "target_reps": "float",
         "target_weight_kg": "float",
         "target_rpe": "float",
