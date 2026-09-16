@@ -30,11 +30,14 @@ docker-compose.yml   Local PostgreSQL
 Requirements: Docker, [uv](https://docs.astral.sh/uv/), Node.js 24 and pnpm.
 
 ```bash
-cp .env.example .env          # then set POSTGRES_PASSWORD
+cp .env.example .env          # then set POSTGRES_PASSWORD, GYM_DATABASE_URL and GYM_JWT_SECRET
 docker compose up -d --wait   # start PostgreSQL
 
 cd backend
 uv sync
+uv run alembic upgrade head   # create the database schema
+uv run gym-admin create-user --email you@example.com
+uv run uvicorn gym_tracker.main:create_app --factory --reload   # http://localhost:8000/docs
 uv run gym-report             # training report from data/
 
 cd ../frontend
@@ -46,7 +49,8 @@ pnpm dev                      # http://localhost:5173
 
 - [x] Interim CSV training log and analytics engine (e1RM, PRs, weekly volume, weight trend, plateaus, progression)
 - [x] App foundation: frontend shell, PostgreSQL in Docker, CI
-- [ ] Backend API: models, migrations, JWT auth, CRUD for exercises, routines, workouts and measurements
+- [x] Backend API foundation: models, migrations, cookie-based JWT auth, health check
+- [ ] Backend API: CRUD for exercises, routines, workouts and measurements; exercise catalog seed
 - [ ] Frontend: log a workout live (mobile first), routines, measurements
 - [ ] Performance dashboard with charts and recommendations
 - [ ] Deployment and demo data
