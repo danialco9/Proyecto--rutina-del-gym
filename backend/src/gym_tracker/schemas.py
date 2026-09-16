@@ -9,6 +9,7 @@ from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, mode
 
 from gym_tracker.enums import Equipment, MuscleGroup
 from gym_tracker.slugs import SLUG_PATTERN
+from gym_tracker.users import MIN_PASSWORD_LENGTH
 
 
 class ORMModel(BaseModel):
@@ -42,6 +43,11 @@ class PartialUpdate(InputModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)
+
+
+class RegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=128)
 
 
 class UserRead(ORMModel):

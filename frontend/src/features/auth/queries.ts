@@ -24,6 +24,14 @@ export function useCurrentUser() {
   })
 }
 
+export function useRegister() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (account: LoginInput) => apiFetch<User>('/auth/register', { method: 'POST', body: account }),
+    onSuccess: (user) => queryClient.setQueryData(currentUserQueryKey, user),
+  })
+}
+
 export function useLogin() {
   const queryClient = useQueryClient()
   return useMutation({
