@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import type { UserEvent } from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import type { Exercise, Routine, User } from '@/lib/types'
@@ -38,10 +38,10 @@ function legDay(overrides: Partial<Routine> = {}): Routine {
         id: 1,
         position: 1,
         exercise: SQUAT,
-        target_sets: 4,
-        target_reps: 8,
-        target_weight_kg: 60,
-        target_rpe: null,
+        sets: [
+          { set_number: 1, target_reps: 10, target_weight_kg: 60, target_rpe: null },
+          { set_number: 2, target_reps: 8, target_weight_kg: 70, target_rpe: 8 },
+        ],
       },
     ],
     ...overrides,
@@ -57,7 +57,7 @@ async function addExercise(user: UserEvent, search: string, name: string) {
 }
 
 describe('Routines', () => {
-  it('creates a routine with ordered exercises and targets', async () => {
+  it('creates a routine with ordered exercises and a plan for each set', async () => {
     let routines: Routine[] = []
     const calls = mockApi({
       'GET /auth/me': { body: USER },
@@ -74,18 +74,51 @@ describe('Routines', () => {
     await user.type(await screen.findByLabelText('Nombre'), 'Pierna')
     await addExercise(user, 'prensa', 'Prensa de piernas')
     await addExercise(user, 'sentadilla', 'Sentadilla con barra')
-    await user.click(screen.getByRole('button', { name: 'Subir Sentadilla con barra' }))
-    await user.type(screen.getAllByLabelText('Series')[0], '4')
-    await user.type(screen.getAllByLabelText('Peso (kg)')[0], '60,5')
+
+    // Move the squat to the top with the keyboard: pick up, move up, drop.
+    screen.getByRole('button', { name: 'Mover Sentadilla con barra' }).focus()
+    await user.keyboard('[Space]')
+    await user.keyboard('[ArrowUp]')
+    await user.keyboard('[Space]')
+
+    const [squat, press] = screen.getAllByRole('listitem').filter((item) => item.querySelector('ol'))
+    expect(squat).toHaveTextContent('Sentadilla con barra')
+    expect(press).toHaveTextContent('Prensa de piernas')
+
+    // Squat: a ramp of 10 × 60, 8 × 70 and 6 × 80.
+    const squatCard = within(squat)
+    await user.click(squatCard.getByRole('button', { name: 'Quitar serie 3 de Sentadilla con barra' }))
+    await user.click(squatCard.getByRole('button', { name: 'Quitar serie 2 de Sentadilla con barra' }))
+    await user.type(squatCard.getByLabelText('Serie 1: Reps'), '10')
+    await user.type(squatCard.getByLabelText('Serie 1: Peso (kg)'), '60')
+    await user.click(squatCard.getByRole('button', { name: 'Añadir serie' }))
+    expect(squatCard.getByLabelText('Serie 2: Peso (kg)')).toHaveValue('60')
+    await user.clear(squatCard.getByLabelText('Serie 2: Reps'))
+    await user.type(squatCard.getByLabelText('Serie 2: Reps'), '8')
+    await user.clear(squatCard.getByLabelText('Serie 2: Peso (kg)'))
+    await user.type(squatCard.getByLabelText('Serie 2: Peso (kg)'), '72,5')
+    await user.click(squatCard.getByRole('button', { name: 'Añadir serie' }))
+    await user.clear(squatCard.getByLabelText('Serie 3: Reps'))
+    await user.type(squatCard.getByLabelText('Serie 3: Reps'), '6')
+    await user.type(squatCard.getByLabelText('Serie 3: RPE'), '9')
+
     await user.click(screen.getByRole('button', { name: 'Guardar rutina' }))
 
     expect(await screen.findByRole('link', { name: /Pierna/ })).toBeInTheDocument()
+    const emptySet = { target_reps: null, target_weight_kg: null, target_rpe: null }
     expect(calls.find((call) => call.method === 'POST' && call.path === '/routines')?.body).toEqual({
       name: 'Pierna',
       description: null,
       exercises: [
-        { exercise_id: 11, target_sets: 4, target_reps: null, target_weight_kg: 60.5, target_rpe: null },
-        { exercise_id: 5, target_sets: null, target_reps: null, target_weight_kg: null, target_rpe: null },
+        {
+          exercise_id: 11,
+          sets: [
+            { target_reps: 10, target_weight_kg: 60, target_rpe: null },
+            { target_reps: 8, target_weight_kg: 72.5, target_rpe: null },
+            { target_reps: 6, target_weight_kg: 72.5, target_rpe: 9 },
+          ],
+        },
+        { exercise_id: 5, sets: [emptySet, emptySet, emptySet] },
       ],
     })
   })
@@ -111,7 +144,8 @@ describe('Routines', () => {
     await user.click(await screen.findByRole('link', { name: /Pierna/ }))
     const name = await screen.findByLabelText('Nombre')
     expect(name).toHaveValue('Pierna')
-    expect(screen.getByLabelText('Peso (kg)')).toHaveValue('60')
+    expect(screen.getByLabelText('Serie 1: Peso (kg)')).toHaveValue('60')
+    expect(screen.getByLabelText('Serie 2: RPE')).toHaveValue('8')
     await user.clear(name)
     await user.type(name, 'Pierna A')
     await user.click(screen.getByRole('button', { name: 'Guardar rutina' }))
@@ -120,7 +154,15 @@ describe('Routines', () => {
     expect(calls.find((call) => call.method === 'PUT')?.body).toMatchObject({
       name: 'Pierna A',
       description: 'Miércoles',
-      exercises: [{ exercise_id: 11, target_sets: 4, target_reps: 8, target_weight_kg: 60 }],
+      exercises: [
+        {
+          exercise_id: 11,
+          sets: [
+            { target_reps: 10, target_weight_kg: 60, target_rpe: null },
+            { target_reps: 8, target_weight_kg: 70, target_rpe: 8 },
+          ],
+        },
+      ],
     })
 
     await user.click(screen.getByRole('link', { name: /Pierna A/ }))

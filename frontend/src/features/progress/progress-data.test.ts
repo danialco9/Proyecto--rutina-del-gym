@@ -19,10 +19,9 @@ function recommendation(name: string, action: Recommendation['action']): Recomme
     exercise_name: name,
     action,
     last_performed_on: '2026-09-15',
-    last_weight_kg: 60,
-    last_reps: [8, 8, 8],
-    target_reps: 8,
-    suggested_weight_kg: 62.5,
+    last_sets: [{ reps: 8, weight_kg: 60, rpe: 8 }],
+    target_sets: [{ reps: 8, weight_kg: null }],
+    suggested_sets: [{ reps: 8, weight_kg: 62.5 }],
   }
 }
 

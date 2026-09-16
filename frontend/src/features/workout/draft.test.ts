@@ -23,10 +23,12 @@ const legDay: Routine = {
     {
       id: 1,
       position: 1,
-      target_sets: 3,
-      target_reps: 8,
-      target_weight_kg: 60,
-      target_rpe: 8,
+      sets: [1, 2, 3].map((setNumber) => ({
+        set_number: setNumber,
+        target_reps: 8,
+        target_weight_kg: 60,
+        target_rpe: 8,
+      })),
       exercise: {
         id: 11,
         slug: 'back-squat',
@@ -61,6 +63,41 @@ describe('draftReducer', () => {
       { reps: 8, weightKg: 60, done: false },
       { reps: 8, weightKg: 60, done: false },
     ])
+  })
+
+  it('prefills each planned set with its own reps and weight', () => {
+    const pyramid: Routine = {
+      ...legDay,
+      exercises: [
+        {
+          ...legDay.exercises[0],
+          sets: [
+            { set_number: 1, target_reps: 10, target_weight_kg: 60, target_rpe: null },
+            { set_number: 2, target_reps: 8, target_weight_kg: 70, target_rpe: null },
+            { set_number: 3, target_reps: null, target_weight_kg: null, target_rpe: 9 },
+          ],
+        },
+      ],
+    }
+
+    const [entry] = start(pyramid).exercises
+
+    expect(entry.targets).toEqual([
+      { reps: 10, weightKg: 60 },
+      { reps: 8, weightKg: 70 },
+      { reps: null, weightKg: null },
+    ])
+    expect(entry.sets.map(({ reps, weightKg }) => [reps, weightKg])).toEqual([
+      [10, 60],
+      [8, 70],
+      [10, 0],
+    ])
+  })
+
+  it('starts an exercise without planned sets with one empty set', () => {
+    const noPlan: Routine = { ...legDay, exercises: [{ ...legDay.exercises[0], sets: [] }] }
+
+    expect(start(noPlan).exercises[0].sets).toHaveLength(1)
   })
 
   it('copies the previous set and clamps adjustments', () => {
@@ -134,6 +171,18 @@ describe('draft storage', () => {
 
     saveDraft(null)
     expect(loadDraft()).toBeNull()
+  })
+
+  it('keeps a draft saved before routines planned each set', () => {
+    const draft = start(legDay)
+    const { targets: _targets, ...oldEntry } = draft.exercises[0]
+    const oldDraft = {
+      ...draft,
+      exercises: [{ ...oldEntry, targetSets: 3, targetReps: 8, targetWeightKg: 60 }],
+    }
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(oldDraft))
+
+    expect(loadDraft()?.exercises[0]).toEqual({ ...oldEntry, targets: [] })
   })
 
   it('ignores corrupt or outdated data', () => {

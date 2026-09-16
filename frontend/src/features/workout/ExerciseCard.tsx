@@ -2,18 +2,10 @@ import { PlusIcon, Trash2Icon } from 'lucide-react'
 import type { Dispatch } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { formatKg } from '@/lib/format'
+import { formatSetPlan } from '@/lib/set-plan'
 import type { DraftAction, DraftExercise } from './draft'
 import { LastSessionHint } from './LastSessionHint'
 import { SetRow } from './SetRow'
-
-function formatTarget(entry: DraftExercise): string | null {
-  if (entry.targetSets === null && entry.targetReps === null) {
-    return null
-  }
-  const scheme = `${entry.targetSets ?? '–'} × ${entry.targetReps ?? '–'}`
-  return entry.targetWeightKg === null ? scheme : `${scheme} · ${formatKg(entry.targetWeightKg)}`
-}
 
 interface ExerciseCardProps {
   entry: DraftExercise
@@ -22,7 +14,7 @@ interface ExerciseCardProps {
 }
 
 export function ExerciseCard({ entry, dispatch, onSetCompleted }: ExerciseCardProps) {
-  const target = formatTarget(entry)
+  const target = formatSetPlan(entry.targets)
 
   return (
     <Card size="sm">

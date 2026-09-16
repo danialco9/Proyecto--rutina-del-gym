@@ -1,3 +1,15 @@
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type Announcements,
+  type DragEndEvent,
+  type Modifier,
+} from '@dnd-kit/core'
+import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ChevronLeftIcon, PlusIcon, Trash2Icon } from 'lucide-react'
 import { useState } from 'react'
@@ -14,7 +26,9 @@ import { ApiError } from '@/lib/api'
 import type { Routine } from '@/lib/types'
 import { useCreateRoutine, useDeleteRoutine, useUpdateRoutine } from './queries'
 import {
+  DEFAULT_SET_COUNT,
   emptyRoutineForm,
+  emptySet,
   formToRoutinePayload,
   routineFormSchema,
   routineToForm,
@@ -32,6 +46,13 @@ function saveErrorMessage(error: Error): string {
   return 'No se pudo guardar la rutina. Inténtalo de nuevo.'
 }
 
+const restrictToVerticalAxis: Modifier = ({ transform }) => ({ ...transform, x: 0 })
+
+const SCREEN_READER_INSTRUCTIONS = {
+  draggable:
+    'Para mover un ejercicio, pulsa espacio o intro. Usa las flechas arriba y abajo para cambiar su posición, espacio o intro para soltarlo y escape para cancelar.',
+}
+
 interface RoutineEditorProps {
   routine?: Routine
 }
@@ -45,6 +66,7 @@ export function RoutineEditor({ routine }: RoutineEditorProps) {
   const {
     register,
     control,
+    getValues,
     handleSubmit,
     formState: { errors },
   } = useForm<RoutineFormValues>({
@@ -52,6 +74,27 @@ export function RoutineEditor({ routine }: RoutineEditorProps) {
     defaultValues: routine ? routineToForm(routine) : emptyRoutineForm,
   })
   const { fields, append, remove, move } = useFieldArray({ control, name: 'exercises' })
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const positionOf = (id: string | number) => fields.findIndex((field) => field.id === id) + 1
+  const nameOf = (id: string | number) => fields.find((field) => field.id === id)?.name ?? 'Ejercicio'
+  const announcements: Announcements = {
+    onDragStart: ({ active }) => `Moviendo ${nameOf(active.id)}, posición ${positionOf(active.id)}.`,
+    onDragOver: ({ active, over }) =>
+      over ? `${nameOf(active.id)} pasa a la posición ${positionOf(over.id)}.` : undefined,
+    onDragEnd: ({ active, over }) =>
+      over ? `${nameOf(active.id)} colocado en la posición ${positionOf(over.id)}.` : undefined,
+    onDragCancel: ({ active }) => `Movimiento cancelado. ${nameOf(active.id)} vuelve a su posición.`,
+  }
+
+  const onDragEnd = ({ active, over }: DragEndEvent) => {
+    if (over && active.id !== over.id) {
+      move(positionOf(active.id) - 1, positionOf(over.id) - 1)
+    }
+  }
 
   const saving = createRoutine.isPending || updateRoutine.isPending
   const saveError = createRoutine.error ?? updateRoutine.error
@@ -124,7 +167,8 @@ export function RoutineEditor({ routine }: RoutineEditorProps) {
         <div className="space-y-1">
           <h2 className="font-heading text-lg font-medium">Ejercicios</h2>
           <p className="text-muted-foreground text-sm">
-            En el orden en que los haces. Los objetivos son opcionales y se precargan al empezar el entreno.
+            Arrastra desde el asa para ordenarlos. Cada serie puede tener sus reps, peso y RPE (todo
+            opcional); se precargan al empezar el entreno.
           </p>
         </div>
         {fields.length === 0 && (
@@ -132,23 +176,32 @@ export function RoutineEditor({ routine }: RoutineEditorProps) {
             Todavía no hay ejercicios en esta rutina.
           </p>
         )}
-        <ol className="space-y-3">
-          {fields.map((field, index) => (
-            <li key={field.id}>
-              <RoutineExerciseFields
-                index={index}
-                name={field.name}
-                isFirst={index === 0}
-                isLast={index === fields.length - 1}
-                register={register}
-                errors={errors.exercises?.[index]}
-                onMoveUp={() => move(index, index - 1)}
-                onMoveDown={() => move(index, index + 1)}
-                onRemove={() => remove(index)}
-              />
-            </li>
-          ))}
-        </ol>
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          modifiers={[restrictToVerticalAxis]}
+          accessibility={{ announcements, screenReaderInstructions: SCREEN_READER_INSTRUCTIONS }}
+          onDragEnd={onDragEnd}
+        >
+          <SortableContext items={fields} strategy={verticalListSortingStrategy}>
+            <ol className="space-y-3">
+              {fields.map((field, index) => (
+                <li key={field.id}>
+                  <RoutineExerciseFields
+                    id={field.id}
+                    index={index}
+                    name={field.name}
+                    control={control}
+                    register={register}
+                    getValues={getValues}
+                    errors={errors.exercises?.[index]}
+                    onRemove={() => remove(index)}
+                  />
+                </li>
+              ))}
+            </ol>
+          </SortableContext>
+        </DndContext>
         {exercisesError && <p className="text-destructive text-sm">{exercisesError}</p>}
         <Button
           type="button"
@@ -193,10 +246,7 @@ export function RoutineEditor({ routine }: RoutineEditorProps) {
           append({
             exerciseId: exercise.id,
             name: exercise.name,
-            targetSets: null,
-            targetReps: null,
-            targetWeightKg: null,
-            targetRpe: null,
+            sets: Array.from({ length: DEFAULT_SET_COUNT }, emptySet),
           })
           setPickerOpen(false)
         }}
