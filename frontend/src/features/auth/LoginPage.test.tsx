@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { User } from '@/lib/types'
 import { mockApi } from '@/test/mock-api'
 import { renderRoute } from '@/test/render'
@@ -39,6 +39,36 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
     expect(await screen.findByText('Email o contraseña incorrectos')).toBeInTheDocument()
+  })
+
+  it('opens the public demo when it is enabled', async () => {
+    vi.stubEnv('VITE_DEMO_ENABLED', 'true')
+    vi.resetModules()
+    const { renderRoute: renderWithDemo } = await import('@/test/render')
+    let signedIn = false
+    const calls = mockApi({
+      'GET /auth/me': () => (signedIn ? { body: USER } : SIGNED_OUT),
+      'POST /auth/demo': () => {
+        signedIn = true
+        return { status: 204 }
+      },
+      'GET /workouts?limit=5': { body: [] },
+      'GET /routines': { body: [] },
+    })
+    const { user } = renderWithDemo('/login')
+
+    await user.click(await screen.findByRole('button', { name: 'Probar la demo' }))
+
+    expect(await screen.findByRole('link', { name: /Empezar entreno/ })).toBeInTheDocument()
+    expect(calls.some((call) => call.method === 'POST' && call.path === '/auth/demo')).toBe(true)
+  })
+
+  it('hides the demo button unless it is enabled', async () => {
+    mockApi({ 'GET /auth/me': SIGNED_OUT })
+    renderRoute('/login')
+
+    expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Probar la demo' })).not.toBeInTheDocument()
   })
 
   it('asks to wait after too many attempts', async () => {

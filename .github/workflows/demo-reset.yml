@@ -1,0 +1,41 @@
+name: Reset demo data
+
+# Recreates the public demo account every night so visitors always find a realistic history.
+on:
+  schedule:
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-reset
+
+jobs:
+  reset:
+    name: Seed demo account
+    runs-on: ubuntu-latest
+    # Skipped until the production database URL is configured as a repository secret.
+    if: ${{ vars.DEMO_RESET_ENABLED == 'true' }}
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      GYM_DATABASE_URL: ${{ secrets.PRODUCTION_DATABASE_URL }}
+      # Required by the settings but unused: seeding issues no tokens.
+      GYM_JWT_SECRET: seeding-does-not-sign-tokens
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: astral-sh/setup-uv@v10.1.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Install dependencies
+        run: uv sync --locked --no-dev
+
+      - name: Seed demo account
+        # A random password nobody knows: visitors enter through the demo button.
+        run: uv run gym-admin seed-demo --password "$(openssl rand -base64 32)"

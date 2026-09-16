@@ -19,10 +19,12 @@ change routines, exercises or intensity.
 ## Repository layout
 
 ```
-backend/    Python package: analytics engine (API coming next)
-frontend/   React single-page app
-data/       Interim CSV training log, imported into the database later
+backend/    FastAPI service, analytics engine and production Dockerfile
+frontend/   React single-page app (Vercel config in vercel.json)
+data/       Interim CSV training log
+docs/       Deployment guide
 docker-compose.yml   Local PostgreSQL
+render.yaml          Render Blueprint for the API
 ```
 
 ## Getting started
@@ -58,5 +60,5 @@ pnpm dev                      # http://localhost:5173
 - [x] Progress analytics API (overview and per-exercise history) and demo account
 - [x] Frontend: progress dashboard (recommendations, per-exercise charts, weekly volume, body weight)
 - [x] Rate limiting on login and registration
-- [ ] Deployment and demo data
+- [x] Deployment setup: Vercel + Render (Docker) + Neon, public demo with nightly reset ([guide](docs/deployment.md))
 - [ ] Smarter recommendations, offline PWA, natural-language workout logging

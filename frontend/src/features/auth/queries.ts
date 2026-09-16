@@ -42,6 +42,14 @@ export function useLogin() {
   })
 }
 
+export function useDemoLogin() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => apiFetch<void>('/auth/demo', { method: 'POST' }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: currentUserQueryKey }),
+  })
+}
+
 export function useLogout() {
   const queryClient = useQueryClient()
   return useMutation({
