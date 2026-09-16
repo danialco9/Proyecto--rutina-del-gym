@@ -21,8 +21,20 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     # ``memory://`` suits a single instance; use ``redis://host:6379`` when running several.
     rate_limit_storage: str = "memory://"
+    # Public demo: POST /api/auth/demo signs in to this account (created with `gym-admin seed-demo`).
+    demo_enabled: bool = False
+    demo_email: str = "demo@gymtracker.dev"
     # Calendar days and weeks in the analytics (workout dates, "today") follow this IANA time zone.
     timezone: str = "Europe/Madrid"
+
+    @field_validator("database_url")
+    @classmethod
+    def use_psycopg_driver(cls, value: str) -> str:
+        """Accept the plain ``postgres://`` or ``postgresql://`` URLs that hosted databases (e.g. Neon) hand out."""
+        for prefix in ("postgres://", "postgresql://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value.removeprefix(prefix)
+        return value
 
     @field_validator("timezone")
     @classmethod
