@@ -1,0 +1,104 @@
+import { useSearchParams } from 'react-router'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { formatDay, formatSignedKg } from '@/lib/format'
+import { BodyWeightTab } from './BodyWeightTab'
+import { ExercisesTab } from './ExercisesTab'
+import { StatTile } from './ProgressParts'
+import { useProgressOverview } from './queries'
+import { RecommendationsTab } from './RecommendationsTab'
+import { VolumeTab } from './VolumeTab'
+
+const TABS = [
+  { value: 'proxima', label: 'Próxima' },
+  { value: 'ejercicios', label: 'Ejercicios' },
+  { value: 'volumen', label: 'Volumen' },
+  { value: 'peso', label: 'Peso' },
+] as const
+
+type TabValue = (typeof TABS)[number]['value']
+
+const isTab = (value: unknown): value is TabValue => TABS.some((tab) => tab.value === value)
+
+export function ProgressPage() {
+  const overview = useProgressOverview()
+  // The active tab lives in the URL (?vista=), so reloads and the back button keep it.
+  const [searchParams, setSearchParams] = useSearchParams()
+  const requested = searchParams.get('vista')
+  const tab: TabValue = isTab(requested) ? requested : 'proxima'
+
+  return (
+    <div className="space-y-5">
+      <header className="space-y-1">
+        <h1 className="font-heading text-2xl font-semibold">Progreso</h1>
+        <p className="text-muted-foreground text-sm">Qué toca en la próxima sesión y cómo evolucionas.</p>
+      </header>
+
+      {overview.isPending && <p className="text-muted-foreground text-sm">Calculando tu progreso…</p>}
+      {overview.isError && (
+        <Alert variant="destructive">
+          <AlertDescription>No se pudo cargar tu progreso.</AlertDescription>
+        </Alert>
+      )}
+
+      {overview.data && (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            <StatTile
+              label="Últimos 7 días"
+              value={String(overview.data.activity.workouts_last_7_days)}
+              detail="entrenos"
+            />
+            <StatTile
+              label="Últimos 28 días"
+              value={String(overview.data.activity.workouts_last_28_days)}
+              detail="entrenos"
+            />
+            <StatTile
+              label="Último entreno"
+              value={
+                overview.data.activity.last_workout_on === null
+                  ? '—'
+                  : formatDay(overview.data.activity.last_workout_on)
+              }
+              detail={
+                overview.data.body_weight.weekly_change_kg === null
+                  ? undefined
+                  : `Peso ${formatSignedKg(overview.data.body_weight.weekly_change_kg)}/sem`
+              }
+            />
+          </div>
+
+          <Tabs
+            value={tab}
+            onValueChange={(value) => {
+              if (isTab(value)) {
+                setSearchParams({ vista: value }, { replace: true })
+              }
+            }}
+          >
+            <TabsList className="h-10 w-full">
+              {TABS.map(({ value, label }) => (
+                <TabsTrigger key={value} value={value}>
+                  {label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            <TabsContent value="proxima" className="pt-2">
+              <RecommendationsTab recommendations={overview.data.recommendations} />
+            </TabsContent>
+            <TabsContent value="ejercicios" className="pt-2">
+              <ExercisesTab records={overview.data.personal_records} />
+            </TabsContent>
+            <TabsContent value="volumen" className="pt-2">
+              <VolumeTab weeks={overview.data.weekly_volume} />
+            </TabsContent>
+            <TabsContent value="peso" className="pt-2">
+              <BodyWeightTab bodyWeight={overview.data.body_weight} />
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
+    </div>
+  )
+}

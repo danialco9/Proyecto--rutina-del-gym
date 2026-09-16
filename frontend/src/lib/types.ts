@@ -124,3 +124,64 @@ export interface BodyMeasurement {
 }
 
 export type BodyMeasurementIn = Omit<BodyMeasurement, 'id'>
+
+export type ProgressionAction = 'increase_load' | 'increase_reps' | 'hold' | 'deload'
+
+export interface Recommendation {
+  exercise_id: number
+  exercise_name: string
+  action: ProgressionAction
+  last_performed_on: string
+  last_weight_kg: number
+  last_reps: number[]
+  target_reps: number | null
+  suggested_weight_kg: number
+}
+
+export interface PersonalRecord {
+  exercise_id: number
+  exercise_name: string
+  muscle_group: MuscleGroup
+  sessions: number
+  best_e1rm_kg: number
+  best_e1rm_on: string
+  max_weight_kg: number
+  max_weight_on: string
+}
+
+export interface WeeklyVolume {
+  week_start: string
+  muscles: { muscle_group: MuscleGroup; hard_sets: number; volume_kg: number }[]
+}
+
+export interface ProgressOverview {
+  activity: {
+    workouts_total: number
+    workouts_last_7_days: number
+    workouts_last_28_days: number
+    last_workout_on: string | null
+  }
+  recommendations: Recommendation[]
+  personal_records: PersonalRecord[]
+  weekly_volume: WeeklyVolume[]
+  body_weight: {
+    entries: { measured_on: string; weight_kg: number; trend_kg: number }[]
+    weekly_change_kg: number | null
+  }
+}
+
+export interface ExerciseSession {
+  workout_id: number
+  performed_on: string
+  best_e1rm_kg: number
+  top_weight_kg: number
+  working_sets: number
+  total_reps: number
+  volume_kg: number
+}
+
+export interface ExerciseProgress {
+  exercise_id: number
+  exercise_name: string
+  sessions: ExerciseSession[]
+}

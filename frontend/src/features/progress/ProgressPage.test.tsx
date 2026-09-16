@@ -1,0 +1,209 @@
+import { screen, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import type { ExerciseProgress, ProgressOverview, User } from '@/lib/types'
+import { mockApi } from '@/test/mock-api'
+import { renderRoute } from '@/test/render'
+
+// Recharts needs real layout (ResizeObserver, element sizes), which jsdom does not provide.
+vi.mock('./ProgressCharts', () => ({
+  ExerciseChart: ({ sessions }: { sessions: unknown[] }) => <p>Gráfica de {sessions.length} sesiones</p>,
+  VolumeChart: ({ series }: { series: string[] }) => <p>Volumen: {series.join(', ')}</p>,
+  BodyWeightChart: ({ entries }: { entries: unknown[] }) => <p>Gráfica de {entries.length} pesajes</p>,
+}))
+
+const USER: User = { id: 1, email: 'dani@example.com', created_at: '2026-09-15T10:00:00Z' }
+
+const EMPTY_WEEKS = ['2026-08-31', '2026-09-07'].map((weekStart) => ({ week_start: weekStart, muscles: [] }))
+
+const OVERVIEW: ProgressOverview = {
+  activity: {
+    workouts_total: 12,
+    workouts_last_7_days: 3,
+    workouts_last_28_days: 11,
+    last_workout_on: '2026-09-15',
+  },
+  recommendations: [
+    {
+      exercise_id: 11,
+      exercise_name: 'Sentadilla con barra',
+      action: 'increase_load',
+      last_performed_on: '2026-09-09',
+      last_weight_kg: 77.5,
+      last_reps: [8, 8, 8, 8],
+      target_reps: 6,
+      suggested_weight_kg: 80,
+    },
+    {
+      exercise_id: 1,
+      exercise_name: 'Press banca con barra',
+      action: 'increase_reps',
+      last_performed_on: '2026-09-15',
+      last_weight_kg: 67.5,
+      last_reps: [6, 6, 4],
+      target_reps: 8,
+      suggested_weight_kg: 67.5,
+    },
+    {
+      exercise_id: 5,
+      exercise_name: 'Prensa de piernas',
+      action: 'deload',
+      last_performed_on: '2026-09-09',
+      last_weight_kg: 142.5,
+      last_reps: [14, 14, 13],
+      target_reps: 12,
+      suggested_weight_kg: 127.5,
+    },
+  ],
+  personal_records: [
+    {
+      exercise_id: 1,
+      exercise_name: 'Press banca con barra',
+      muscle_group: 'chest',
+      sessions: 14,
+      best_e1rm_kg: 83.3,
+      best_e1rm_on: '2026-08-28',
+      max_weight_kg: 67.5,
+      max_weight_on: '2026-09-15',
+    },
+    {
+      exercise_id: 11,
+      exercise_name: 'Sentadilla con barra',
+      muscle_group: 'quads',
+      sessions: 11,
+      best_e1rm_kg: 101.3,
+      best_e1rm_on: '2026-07-29',
+      max_weight_kg: 80,
+      max_weight_on: '2026-07-01',
+    },
+  ],
+  weekly_volume: [
+    ...EMPTY_WEEKS,
+    {
+      week_start: '2026-09-14',
+      muscles: [
+        { muscle_group: 'chest', hard_sets: 6, volume_kg: 2400 },
+        { muscle_group: 'quads', hard_sets: 7, volume_kg: 5000 },
+      ],
+    },
+  ],
+  body_weight: {
+    entries: [
+      { measured_on: '2026-09-14', weight_kg: 79.9, trend_kg: 80.1 },
+      { measured_on: '2026-09-15', weight_kg: 79.7, trend_kg: 80.03 },
+    ],
+    weekly_change_kg: -0.24,
+  },
+}
+
+function sessions(exerciseId: number, name: string, count: number): ExerciseProgress {
+  return {
+    exercise_id: exerciseId,
+    exercise_name: name,
+    sessions: Array.from({ length: count }, (_, index) => ({
+      workout_id: index + 1,
+      performed_on: `2026-09-${String(index + 1).padStart(2, '0')}`,
+      best_e1rm_kg: 80 + index,
+      top_weight_kg: 60 + index,
+      working_sets: 3,
+      total_reps: 24,
+      volume_kg: 1440,
+    })),
+  }
+}
+
+describe('Progress', () => {
+  it('shows activity and the next-session recommendations grouped by action', async () => {
+    mockApi({ 'GET /auth/me': { body: USER }, 'GET /progress/overview': { body: OVERVIEW } })
+    renderRoute('/progreso')
+
+    expect(await screen.findByText('Últimos 7 días')).toBeInTheDocument()
+    expect(screen.getByText('Peso -0,24 kg/sem')).toBeInTheDocument()
+
+    const increase = screen.getByRole('heading', { name: /Sube el peso/ }).closest('section')
+    expect(increase).not.toBeNull()
+    expect(within(increase!).getByText('Sentadilla con barra')).toBeInTheDocument()
+    expect(within(increase!).getByText('80 kg')).toBeInTheDocument()
+
+    const deload = screen.getByRole('heading', { name: /Descarga/ }).closest('section')
+    expect(within(deload!).getByText('127,5 kg')).toBeInTheDocument()
+    expect(within(deload!).getByText(/× 14\/14\/13 · objetivo 12/)).toBeInTheDocument()
+  })
+
+  it('charts the progress of the chosen exercise', async () => {
+    mockApi({
+      'GET /auth/me': { body: USER },
+      'GET /progress/overview': { body: OVERVIEW },
+      'GET /progress/exercises/1': { body: sessions(1, 'Press banca con barra', 14) },
+      'GET /progress/exercises/11': { body: sessions(11, 'Sentadilla con barra', 1) },
+    })
+    const { user, router } = renderRoute('/progreso')
+
+    await user.click(await screen.findByRole('tab', { name: 'Ejercicios' }))
+    expect(router.state.location.search).toBe('?vista=ejercicios')
+    expect(screen.getByLabelText('Ejercicio')).toHaveDisplayValue('Press banca con barra')
+    expect(await screen.findByText('Gráfica de 14 sesiones')).toBeInTheDocument()
+    expect(screen.getByText('83,3 kg')).toBeInTheDocument()
+
+    await user.selectOptions(screen.getByLabelText('Ejercicio'), 'Sentadilla con barra')
+    expect(
+      await screen.findByText('Con dos sesiones de este ejercicio verás su gráfica.'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('101,3 kg')).toBeInTheDocument()
+  })
+
+  it('opens the tab from the URL and shows volume and body weight', async () => {
+    mockApi({ 'GET /auth/me': { body: USER }, 'GET /progress/overview': { body: OVERVIEW } })
+    const { user } = renderRoute('/progreso?vista=volumen')
+
+    expect(await screen.findByText('Volumen: quads, chest')).toBeInTheDocument()
+    const table = screen.getByRole('table', { name: /Series por músculo/ })
+    expect(within(table).getByRole('row', { name: /Cuádriceps 7 0/ })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('tab', { name: 'Peso' }))
+    expect(await screen.findByText('Gráfica de 2 pesajes')).toBeInTheDocument()
+    expect(screen.getByText('79,7 kg')).toBeInTheDocument()
+    expect(screen.getByText('-0,24 kg')).toBeInTheDocument()
+  })
+
+  it('explains what to do when there is no data yet', async () => {
+    mockApi({
+      'GET /auth/me': { body: USER },
+      'GET /progress/overview': {
+        body: {
+          activity: {
+            workouts_total: 0,
+            workouts_last_7_days: 0,
+            workouts_last_28_days: 0,
+            last_workout_on: null,
+          },
+          recommendations: [],
+          personal_records: [],
+          weekly_volume: EMPTY_WEEKS,
+          body_weight: { entries: [], weekly_change_kg: null },
+        } satisfies ProgressOverview,
+      },
+    })
+    const { user } = renderRoute('/progreso')
+
+    expect(await screen.findByText(/Registra tu primer entreno/)).toBeInTheDocument()
+    await user.click(screen.getByRole('tab', { name: 'Peso' }))
+    expect(within(screen.getByRole('tabpanel')).getByRole('link', { name: 'Medidas' })).toHaveAttribute(
+      'href',
+      '/medidas',
+    )
+  })
+
+  it('summarizes the next session on the home page', async () => {
+    mockApi({
+      'GET /auth/me': { body: USER },
+      'GET /progress/overview': { body: OVERVIEW },
+      'GET /workouts?limit=5': { body: [] },
+      'GET /routines': { body: [] },
+    })
+    renderRoute('/')
+
+    const link = await screen.findByRole('link', { name: /Próxima sesión/ })
+    expect(link).toHaveTextContent('1 ejercicio listo para subir peso · 1 descarga')
+    expect(link).toHaveAttribute('href', '/progreso')
+  })
+})

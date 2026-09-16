@@ -1,9 +1,10 @@
-import { DumbbellIcon } from 'lucide-react'
+import { ChartLineIcon, ChevronRightIcon, DumbbellIcon } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { buttonVariants } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useProgressOverview } from '@/features/progress/queries'
 import { loadDraft } from '@/features/workout/draft'
 import { useRecentWorkouts, useRoutines } from '@/features/workout/queries'
 import { formatDate, formatDuration, plural } from '@/lib/format'
@@ -23,6 +24,39 @@ function workoutSummary(workout: Workout): string {
     .join(' · ')
 }
 
+function ProgressSummary() {
+  const overview = useProgressOverview()
+  const recommendations = overview.data?.recommendations ?? []
+  if (recommendations.length === 0) {
+    return null
+  }
+  const count = (action: string) => recommendations.filter((item) => item.action === action).length
+  const increases = count('increase_load')
+  const deloads = count('deload')
+  const summary = [
+    `${increases} ${plural(increases, 'ejercicio listo', 'ejercicios listos')} para subir peso`,
+    deloads > 0 && `${deloads} ${plural(deloads, 'descarga', 'descargas')}`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+
+  return (
+    <Link
+      to="/progreso"
+      className="bg-card hover:bg-muted flex items-center justify-between gap-3 rounded-xl border p-4 transition-colors"
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <ChartLineIcon className="text-primary size-5 shrink-0" aria-hidden />
+        <span className="min-w-0">
+          <span className="block font-medium">Próxima sesión</span>
+          <span className="text-muted-foreground block text-sm">{summary}</span>
+        </span>
+      </span>
+      <ChevronRightIcon className="text-muted-foreground size-5 shrink-0" aria-hidden />
+    </Link>
+  )
+}
+
 export function HomePage() {
   const [hasDraft] = useState(() => loadDraft() !== null)
   const workouts = useRecentWorkouts(5)
@@ -40,6 +74,7 @@ export function HomePage() {
           <DumbbellIcon />
           {hasDraft ? 'Continuar entreno' : 'Empezar entreno'}
         </Link>
+        <ProgressSummary />
       </section>
 
       <section className="space-y-3">
