@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,21 @@ class Settings(BaseSettings):
     rate_limit_enabled: bool = True
     # ``memory://`` suits a single instance; use ``redis://host:6379`` when running several.
     rate_limit_storage: str = "memory://"
+    # Calendar days and weeks in the analytics (workout dates, "today") follow this IANA time zone.
+    timezone: str = "Europe/Madrid"
+
+    @field_validator("timezone")
+    @classmethod
+    def check_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as error:
+            raise ValueError(f"Unknown time zone: {value}") from error
+        return value
+
+    @property
+    def zone(self) -> ZoneInfo:
+        return ZoneInfo(self.timezone)
 
 
 @lru_cache

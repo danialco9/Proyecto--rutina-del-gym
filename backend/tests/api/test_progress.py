@@ -1,12 +1,15 @@
 from collections.abc import Iterator
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 from sqlalchemy.orm import Session
 
 from gym_tracker.api.progress import get_today
+from gym_tracker.config import Settings
 from gym_tracker.models import Workout, WorkoutSet
 from gym_tracker.users import create_user
 from tests.api.conftest import catalog_exercise_id
@@ -199,6 +202,35 @@ def test_exercise_progress_lists_sessions(progress_client: TestClient, training_
             },
         ],
     }
+
+
+def test_workout_dates_follow_the_configured_time_zone(progress_client: TestClient, session: Session) -> None:
+    bench = catalog_exercise_id(session, "bench-press")
+    # 00:30 in Madrid is still the previous day in UTC.
+    post(
+        progress_client,
+        "/api/workouts",
+        {"started_at": "2026-09-14T00:30:00+02:00", "sets": [bench_set(bench, 1, 5, 80)]},
+    )
+
+    overview = progress_client.get("/api/progress/overview").json()
+
+    assert overview["activity"]["last_workout_on"] == "2026-09-14"
+    assert overview["weekly_volume"][-1]["week_start"] == "2026-09-14"
+    assert overview["weekly_volume"][-1]["muscles"] == [{"muscle_group": "chest", "hard_sets": 1, "volume_kg": 400.0}]
+
+
+def test_today_uses_the_configured_time_zone(settings: Settings) -> None:
+    madrid = settings.model_copy(update={"timezone": "Europe/Madrid"})
+    tokyo = settings.model_copy(update={"timezone": "Asia/Tokyo"})
+
+    assert get_today(madrid) == datetime.now(ZoneInfo("Europe/Madrid")).date()
+    assert get_today(tokyo) == datetime.now(ZoneInfo("Asia/Tokyo")).date()
+
+
+def test_unknown_time_zone_is_rejected(settings: Settings) -> None:
+    with pytest.raises(ValidationError, match="Unknown time zone"):
+        Settings.model_validate({**settings.model_dump(), "timezone": "Mars/Olympus"})
 
 
 def test_progress_ignores_other_users(progress_client: TestClient, session: Session) -> None:
