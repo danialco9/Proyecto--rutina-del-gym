@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '@/lib/api'
 import type { User } from '@/lib/types'
+import { currentUserQueryKey } from '@/lib/session'
 import type { LoginInput } from './schema'
 
-export const currentUserQueryKey = ['auth', 'me'] as const
+export { currentUserQueryKey }
 
 /** The signed-in user, or `null` when there is no valid session cookie. */
 export function useCurrentUser() {
