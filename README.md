@@ -52,7 +52,9 @@ pnpm dev                      # http://localhost:5173
 - [x] Backend API foundation: models, migrations, cookie-based JWT auth, health check
 - [x] Backend API: CRUD for exercises, routines, workouts and measurements; exercise catalog seed
 - [x] Frontend: login and live workout logging (mobile first, last performance, rest timer, offline draft)
-- [ ] Frontend: routines and body measurements screens
+- [x] Account registration
+- [x] Frontend: routines screen (create, edit, reorder exercises, optional targets)
+- [ ] Frontend: body measurements screen
 - [ ] Performance dashboard with charts and recommendations
 - [ ] Deployment and demo data
 - [ ] Smarter recommendations, offline PWA, natural-language workout logging

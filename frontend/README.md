@@ -9,6 +9,8 @@ light/dark theme.
 - **Live workout logging**: start from a routine (sets prefilled from its targets) or a free
   workout, add exercises from the catalog with accent-insensitive search, and log each set with
   large −/+ buttons (±2.5 kg, ±1 rep) and optional RPE.
+- **Routines**: create, edit and delete routine templates; add exercises from the catalog, reorder
+  them with up/down buttons and set optional targets (sets, reps, weight, RPE).
 - **Last performance** of each exercise shown while logging.
 - **Rest timer** that starts when a set is completed (+15 s / skip, vibrates when done).
 - **Draft persistence**: the workout in progress is saved on the device and survives reloads;
@@ -27,6 +29,7 @@ src/
   features/
     auth/          Login page, route guard, session queries
     home/          Home page with recent workouts
+    routines/      Routine list and editor (React Hook Form field arrays)
     workout/       Live logging: draft reducer, timer, exercise picker, set rows
   lib/             API client, types, formatting, labels
   test/            Test setup, fetch mock and render helper

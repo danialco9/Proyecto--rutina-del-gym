@@ -62,6 +62,20 @@ export interface Routine {
   exercises: RoutineExercise[]
 }
 
+export interface RoutineExerciseIn {
+  exercise_id: number
+  target_sets: number | null
+  target_reps: number | null
+  target_weight_kg: number | null
+  target_rpe: number | null
+}
+
+export interface RoutineIn {
+  name: string
+  description: string | null
+  exercises: RoutineExerciseIn[]
+}
+
 export interface WorkoutSet {
   id: number
   exercise_id: number

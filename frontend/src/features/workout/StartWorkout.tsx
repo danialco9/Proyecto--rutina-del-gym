@@ -1,4 +1,5 @@
 import { ChevronRightIcon, PlusIcon } from 'lucide-react'
+import { Link } from 'react-router'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { plural } from '@/lib/format'
@@ -25,7 +26,12 @@ export function StartWorkout({ onStart }: StartWorkoutProps) {
       </Button>
 
       <section className="space-y-3">
-        <h2 className="font-heading text-lg font-medium">Tus rutinas</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-heading text-lg font-medium">Tus rutinas</h2>
+          <Link to="/rutinas" className="text-primary text-sm font-medium underline-offset-4 hover:underline">
+            Gestionar
+          </Link>
+        </div>
         {routines.isPending && <p className="text-muted-foreground text-sm">Cargando rutinas…</p>}
         {routines.isError && (
           <Alert variant="destructive">
@@ -33,7 +39,13 @@ export function StartWorkout({ onStart }: StartWorkoutProps) {
           </Alert>
         )}
         {routines.data?.length === 0 && (
-          <p className="text-muted-foreground text-sm">Aún no tienes rutinas: empieza un entreno libre.</p>
+          <p className="text-muted-foreground text-sm">
+            Aún no tienes rutinas.{' '}
+            <Link to="/rutinas/nueva" className="text-primary font-medium underline-offset-4 hover:underline">
+              Crea tu primera rutina
+            </Link>{' '}
+            o empieza un entreno libre.
+          </p>
         )}
         <ul className="space-y-2">
           {routines.data?.map((routine) => (
