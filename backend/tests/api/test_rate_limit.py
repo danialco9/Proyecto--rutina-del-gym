@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from gym_tracker.api.deps import get_client_address
-from gym_tracker.config import Settings
+from gym_tracker.config import Settings, get_settings
 from gym_tracker.db import get_session
 from gym_tracker.main import create_app
 from gym_tracker.models import User
@@ -59,8 +59,10 @@ def test_registration_is_limited_per_client(client: TestClient) -> None:
 
 @pytest.fixture
 def unlimited_client(session: Session, settings: Settings) -> Iterator[TestClient]:
-    app = create_app(settings.model_copy(update={"rate_limit_enabled": False}))
+    unlimited = settings.model_copy(update={"rate_limit_enabled": False})
+    app = create_app(unlimited)
     app.dependency_overrides[get_session] = lambda: session
+    app.dependency_overrides[get_settings] = lambda: unlimited
     with TestClient(app) as test_client:
         yield test_client
 
