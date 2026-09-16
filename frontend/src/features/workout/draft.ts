@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { randomId } from '@/lib/id'
 import type { Exercise, Routine, RoutineExercise, WorkoutIn } from '@/lib/types'
 
 export const WEIGHT_STEP_KG = 2.5
@@ -57,7 +58,7 @@ export type DraftAction =
   | { type: 'setNotes'; notes: string }
   | { type: 'discard' }
 
-const newId = () => crypto.randomUUID()
+const newId = randomId
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value))
 
