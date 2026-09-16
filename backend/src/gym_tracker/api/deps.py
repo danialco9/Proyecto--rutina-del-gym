@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from gym_tracker.config import Settings, get_settings
 from gym_tracker.db import get_session
 from gym_tracker.models import User
+from gym_tracker.rate_limit import RateLimiter
 from gym_tracker.security import decode_access_token
 
 ACCESS_TOKEN_COOKIE = "access_token"
@@ -34,3 +35,19 @@ def get_current_user(
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+def get_rate_limiter(request: Request) -> RateLimiter:
+    limiter: RateLimiter = request.app.state.rate_limiter
+    return limiter
+
+
+RateLimiterDep = Annotated[RateLimiter, Depends(get_rate_limiter)]
+
+
+def get_client_address(request: Request) -> str:
+    """The caller's IP. Behind a reverse proxy, run uvicorn with ``--proxy-headers`` so this is the real client."""
+    return request.client.host if request.client else "unknown"
+
+
+ClientAddress = Annotated[str, Depends(get_client_address)]

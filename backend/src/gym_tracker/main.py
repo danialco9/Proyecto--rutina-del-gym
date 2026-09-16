@@ -7,11 +7,13 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from gym_tracker.api import api_router
 from gym_tracker.config import Settings, get_settings
+from gym_tracker.rate_limit import RateLimiter
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
     app = FastAPI(title="Gym Tracker API", version="0.1.0")
+    app.state.rate_limiter = RateLimiter(settings.rate_limit_storage, enabled=settings.rate_limit_enabled)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     access_token_ttl_minutes: int = 60 * 24 * 7
     cookie_secure: bool = True
     cors_origins: list[str] = ["http://localhost:5173"]
+    rate_limit_enabled: bool = True
+    # ``memory://`` suits a single instance; use ``redis://host:6379`` when running several.
+    rate_limit_storage: str = "memory://"
 
 
 @lru_cache
