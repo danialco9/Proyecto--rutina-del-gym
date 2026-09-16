@@ -102,18 +102,23 @@ def test_weekly_change_needs_two_dates(write_log: WriteLog) -> None:
 
 
 @pytest.mark.parametrize(
-    ("history", "stalled"),
+    ("history", "top_weights", "stalled"),
     [
-        ([100.0, 100.5, 100.2, 100.8], True),
-        ([100.0, 102.0, 104.0, 106.0], False),
+        ([100.0, 100.5, 100.2, 100.8], [80.0, 80.0, 80.0, 80.0], True),
+        ([100.0, 102.0, 104.0, 106.0], [80.0, 80.0, 80.0, 80.0], False),
+        # Building the load back up after a deload is not a plateau, even below the old best.
+        ([100.0, 88.0, 91.0, 94.0], [80.0, 70.0, 72.5, 75.0], False),
+        ([100.0, 94.0, 93.0, 94.0], [80.0, 75.0, 75.0, 75.0], False),
+        ([100.0, 94.0, 93.0, 94.0, 93.5], [80.0, 75.0, 75.0, 75.0, 75.0], True),
     ],
 )
-def test_detect_plateaus(history: list[float], stalled: bool) -> None:
+def test_detect_plateaus(history: list[float], top_weights: list[float], stalled: bool) -> None:
     bests = pd.DataFrame(
         {
             "exercise_id": "bench-press",
             "date": pd.date_range("2026-09-01", periods=len(history), freq="W"),
             "best_e1rm_kg": history,
+            "top_weight_kg": top_weights,
         }
     )
 
@@ -124,7 +129,12 @@ def test_detect_plateaus(history: list[float], stalled: bool) -> None:
 
 def test_detect_plateaus_needs_enough_sessions() -> None:
     bests = pd.DataFrame(
-        {"exercise_id": "squat", "date": pd.date_range("2026-09-01", periods=3), "best_e1rm_kg": [100.0] * 3}
+        {
+            "exercise_id": "squat",
+            "date": pd.date_range("2026-09-01", periods=3),
+            "best_e1rm_kg": [100.0] * 3,
+            "top_weight_kg": [80.0] * 3,
+        }
     )
 
     assert detect_plateaus(bests, window=3).empty
