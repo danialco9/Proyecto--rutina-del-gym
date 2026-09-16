@@ -50,7 +50,7 @@ pnpm dev                      # http://localhost:5173
 - [x] Interim CSV training log and analytics engine (e1RM, PRs, weekly volume, weight trend, plateaus, progression)
 - [x] App foundation: frontend shell, PostgreSQL in Docker, CI
 - [x] Backend API foundation: models, migrations, cookie-based JWT auth, health check
-- [ ] Backend API: CRUD for exercises, routines, workouts and measurements; exercise catalog seed
+- [x] Backend API: CRUD for exercises, routines, workouts and measurements; exercise catalog seed
 - [ ] Frontend: log a workout live (mobile first), routines, measurements
 - [ ] Performance dashboard with charts and recommendations
 - [ ] Deployment and demo data

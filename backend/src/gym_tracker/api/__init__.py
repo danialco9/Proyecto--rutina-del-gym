@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter
 
-from gym_tracker.api import auth, health
+from gym_tracker.api import auth, exercises, health, measurements, routines, workouts
 
 api_router = APIRouter(prefix="/api")
-api_router.include_router(health.router)
-api_router.include_router(auth.router)
+for module in (health, auth, exercises, routines, workouts, measurements):
+    api_router.include_router(module.router)

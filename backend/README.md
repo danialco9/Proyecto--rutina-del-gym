@@ -4,11 +4,23 @@ FastAPI service and analytics engine for the gym tracker.
 
 ## Features
 
-- **API** (`/api`): health check and cookie-based JWT authentication (`login`, `logout`, `me`).
-  Interactive docs at `http://localhost:8000/docs`.
-- **Database**: SQLAlchemy 2.0 models for users, exercises, routines, workouts, sets and body
-  measurements, with Alembic migrations and named constraints.
-- **Security**: Argon2 password hashing, signed tokens in an `HttpOnly`, `SameSite=Lax` cookie.
+- **API** (`/api`), with interactive docs at `http://localhost:8000/docs`:
+
+  | Resource | Endpoints |
+  | --- | --- |
+  | Health | `GET /health` |
+  | Auth | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me` |
+  | Exercises | `GET /exercises?muscle_group=&q=`, `GET /exercises/{id}`, `POST /exercises`, `PATCH /exercises/{id}`, `DELETE /exercises/{id}` |
+  | Routines | `GET /routines`, `GET /routines/{id}`, `POST /routines`, `PUT /routines/{id}`, `DELETE /routines/{id}` |
+  | Workouts | `GET /workouts?limit=&offset=`, `GET /workouts/{id}`, `POST /workouts`, `PUT /workouts/{id}`, `DELETE /workouts/{id}`, `POST /workouts/{id}/sets`, `DELETE /workouts/{id}/sets/{set_id}` |
+  | Measurements | `GET /measurements?date_from=&date_to=`, `POST /measurements`, `PUT /measurements/{id}`, `DELETE /measurements/{id}` |
+
+- **Exercise catalog**: 74 built-in exercises with Spanish names and English slugs, shared by all
+  users and read-only. Users can add their own custom exercises.
+- **Database**: SQLAlchemy 2.0 models with Alembic migrations, named constraints and check
+  constraints (RPE 1–10, non-negative loads, one measurement per day, unique set numbers).
+- **Security**: Argon2 password hashing and signed tokens in an `HttpOnly`, `SameSite=Lax` cookie.
+  Every resource is scoped to the authenticated user.
 - **Analytics** (`gym_tracker.analysis`): estimated 1RM (Epley), personal records, weekly hard
   sets per muscle group, body weight trend, plateau detection and rule-based double progression.
 
@@ -21,6 +33,7 @@ in the repository `.env` (see `../.env.example`).
 uv sync                                   # install dependencies
 docker compose up -d --wait               # from the repo root: start PostgreSQL
 uv run alembic upgrade head               # apply migrations
+uv run gym-admin seed-catalog             # load or update the exercise catalog
 uv run gym-admin create-user --email you@example.com
 uv run uvicorn gym_tracker.main:create_app --factory --reload
 
