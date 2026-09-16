@@ -7,6 +7,7 @@ from typing import ClassVar, Self
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
+from gym_tracker.analysis.recommendations import Action
 from gym_tracker.enums import Equipment, MuscleGroup
 from gym_tracker.slugs import SLUG_PATTERN
 from gym_tracker.users import MIN_PASSWORD_LENGTH
@@ -212,3 +213,81 @@ class BodyMeasurementRead(ORMModel):
     arm_cm: float | None
     thigh_cm: float | None
     notes: str | None
+
+
+# Progress analytics
+
+
+class ActivityRead(BaseModel):
+    workouts_total: int
+    workouts_last_7_days: int
+    workouts_last_28_days: int
+    last_workout_on: date | None
+
+
+class RecommendationRead(BaseModel):
+    exercise_id: int
+    exercise_name: str
+    action: Action
+    last_performed_on: date
+    last_weight_kg: float
+    last_reps: list[int]
+    target_reps: int | None
+    suggested_weight_kg: float
+
+
+class PersonalRecordRead(BaseModel):
+    exercise_id: int
+    exercise_name: str
+    muscle_group: str
+    sessions: int
+    best_e1rm_kg: float
+    best_e1rm_on: date
+    max_weight_kg: float
+    max_weight_on: date
+
+
+class MuscleVolumeRead(BaseModel):
+    muscle_group: str
+    hard_sets: int
+    volume_kg: float
+
+
+class WeeklyVolumeRead(BaseModel):
+    week_start: date
+    muscles: list[MuscleVolumeRead]
+
+
+class BodyWeightPointRead(BaseModel):
+    measured_on: date
+    weight_kg: float
+    trend_kg: float
+
+
+class BodyWeightRead(BaseModel):
+    entries: list[BodyWeightPointRead]
+    weekly_change_kg: float | None
+
+
+class ProgressOverviewRead(BaseModel):
+    activity: ActivityRead
+    recommendations: list[RecommendationRead]
+    personal_records: list[PersonalRecordRead]
+    weekly_volume: list[WeeklyVolumeRead]
+    body_weight: BodyWeightRead
+
+
+class ExerciseSessionRead(BaseModel):
+    workout_id: int
+    performed_on: date
+    best_e1rm_kg: float
+    top_weight_kg: float
+    working_sets: int
+    total_reps: int
+    volume_kg: float
+
+
+class ExerciseProgressRead(BaseModel):
+    exercise_id: int
+    exercise_name: str
+    sessions: list[ExerciseSessionRead]
