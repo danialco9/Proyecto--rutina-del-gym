@@ -32,9 +32,12 @@ Why the proxy: the session cookie is `HttpOnly; Secure; SameSite=Lax`. If the fr
 2. When asked, set `GYM_DATABASE_URL` to the Neon connection string. `GYM_JWT_SECRET` is generated.
 3. Deploy. On every start the container runs `alembic upgrade head`, seeds the exercise catalog and
    starts uvicorn with `--proxy-headers`, so rate limits see the visitor's IP.
-4. Check `https://gym-tracker-api.onrender.com/api/health` returns `{"status":"ok","database":"ok"}`.
-   If the service name was taken, Render gives another URL: update the `/api/:path*` rewrite in
-   `frontend/vercel.json`.
+4. Check `https://<service>.onrender.com/api/health` returns `{"status":"ok","database":"ok"}`.
+   Render adds a suffix when the name is taken (this deployment is `gym-tracker-api-8pyd`); the
+   `/api/:path*` rewrite in `frontend/vercel.json` must point to that URL.
+
+If the logs show a connection to `localhost:5432`, `GYM_DATABASE_URL` is missing: the API now
+refuses to start without it.
 
 The free plan sleeps after 15 minutes without traffic; the first request then takes about a minute.
 
@@ -52,7 +55,10 @@ use the **Probar la demo** button, which calls `POST /api/auth/demo` (enabled wi
 
 ## 4. Frontend (Vercel)
 
-1. Add New → Project → import this repository.
+Live at https://gym-tracker-two-beta.vercel.app.
+
+1. Add New → Project → import this repository (or `vercel link` from the repository root; the
+   root `.vercelignore` keeps CLI uploads to the frontend).
 2. Root directory: `frontend` (framework, install and build commands come from `vercel.json`).
 3. Environment variable `VITE_DEMO_ENABLED=true` to show the demo button.
 4. Deploy, open the site and try **Probar la demo** (wait for the API to wake up the first time).
