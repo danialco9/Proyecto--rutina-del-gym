@@ -9,8 +9,11 @@ light/dark theme.
 - **Live workout logging**: start from a routine (sets prefilled from its targets) or a free
   workout, add exercises from the catalog with accent-insensitive search, and log each set with
   large −/+ buttons (±2.5 kg, ±1 rep) and optional RPE.
-- **Routines**: create, edit and delete routine templates; add exercises from the catalog, reorder
-  them with up/down buttons and set optional targets (sets, reps, weight, RPE).
+- **Routines**: create, edit and delete routine templates; add exercises from the catalog and
+  reorder them by dragging a handle (dnd-kit; also works with touch and the keyboard, with Spanish
+  screen reader announcements). Each set has its own optional reps, weight and RPE, so pyramids and
+  ramps are possible; "Añadir serie" copies the previous set. Starting a workout from the routine
+  prefills every set with its plan.
 - **Body measurements**: quick daily weigh-in with optional body fat, circumferences and notes;
   picking a date that already has an entry opens it for editing. Includes a weight chart (Recharts,
   lazy-loaded) and a history with the change from the previous weigh-in.

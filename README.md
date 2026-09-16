@@ -53,7 +53,7 @@ pnpm dev                      # http://localhost:5173
 - [x] Backend API: CRUD for exercises, routines, workouts and measurements; exercise catalog seed
 - [x] Frontend: login and live workout logging (mobile first, last performance, rest timer, offline draft)
 - [x] Account registration
-- [x] Frontend: routines screen (create, edit, reorder exercises, optional targets)
+- [x] Frontend: routines screen (create, edit, drag to reorder, per-set targets for pyramids and ramps)
 - [x] Frontend: body measurements screen (quick weight entry, weight chart, history)
 - [x] Progress analytics API (overview and per-exercise history) and demo account
 - [x] Frontend: progress dashboard (recommendations, per-exercise charts, weekly volume, body weight)
