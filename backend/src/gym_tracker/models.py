@@ -68,28 +68,43 @@ class Routine(Base):
 
 
 class RoutineExercise(Base):
-    """An exercise slot in a routine, with optional targets."""
+    """An exercise slot in a routine, with its planned sets."""
 
     __tablename__ = "routine_exercises"
+    __table_args__ = (UniqueConstraint("routine_id", "position"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    routine_id: Mapped[int] = mapped_column(ForeignKey("routines.id", ondelete="CASCADE"))
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id", ondelete="RESTRICT"), index=True)
+    position: Mapped[int]
+
+    routine: Mapped[Routine] = relationship(back_populates="exercises")
+    exercise: Mapped[Exercise] = relationship()
+    sets: Mapped[list[RoutineSet]] = relationship(
+        back_populates="routine_exercise", cascade="all, delete-orphan", order_by="RoutineSet.set_number"
+    )
+
+
+class RoutineSet(Base):
+    """One planned set of a routine exercise; every target is optional."""
+
+    __tablename__ = "routine_sets"
     __table_args__ = (
-        UniqueConstraint("routine_id", "position"),
-        CheckConstraint("target_sets > 0", name="target_sets_positive"),
+        UniqueConstraint("routine_exercise_id", "set_number"),
+        CheckConstraint("set_number > 0", name="set_number_positive"),
         CheckConstraint("target_reps > 0", name="target_reps_positive"),
         CheckConstraint("target_weight_kg >= 0", name="target_weight_non_negative"),
         CheckConstraint("target_rpe BETWEEN 1 AND 10", name="target_rpe_range"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    routine_id: Mapped[int] = mapped_column(ForeignKey("routines.id", ondelete="CASCADE"))
-    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id", ondelete="RESTRICT"), index=True)
-    position: Mapped[int]
-    target_sets: Mapped[int | None]
+    routine_exercise_id: Mapped[int] = mapped_column(ForeignKey("routine_exercises.id", ondelete="CASCADE"))
+    set_number: Mapped[int]
     target_reps: Mapped[int | None]
     target_weight_kg: Mapped[Decimal | None] = mapped_column(Numeric(6, 2))
     target_rpe: Mapped[Decimal | None] = mapped_column(Numeric(3, 1))
 
-    routine: Mapped[Routine] = relationship(back_populates="exercises")
-    exercise: Mapped[Exercise] = relationship()
+    routine_exercise: Mapped[RoutineExercise] = relationship(back_populates="sets")
 
 
 class Workout(Base):

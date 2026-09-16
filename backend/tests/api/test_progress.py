@@ -42,7 +42,7 @@ def training_log(progress_client: TestClient, session: Session) -> dict[str, int
     routine = post(
         progress_client,
         "/api/routines",
-        {"name": "Torso", "exercises": [{"exercise_id": bench, "target_sets": 3, "target_reps": 8}]},
+        {"name": "Torso", "exercises": [{"exercise_id": bench, "sets": [{"target_reps": 8}] * 3}]},
     )
     post(
         progress_client,
@@ -114,20 +114,18 @@ def test_overview_summarizes_the_training_log(progress_client: TestClient, train
             "exercise_name": "Press banca con barra",
             "action": "increase_load",
             "last_performed_on": "2026-09-15",
-            "last_weight_kg": 62.5,
-            "last_reps": [8, 8, 8],
-            "target_reps": 8,
-            "suggested_weight_kg": 65.0,
+            "last_sets": [{"reps": 8, "weight_kg": 62.5, "rpe": 7.5}] * 3,
+            "target_sets": [{"reps": 8, "weight_kg": None}] * 3,
+            "suggested_sets": [{"reps": 8, "weight_kg": 65.0}] * 3,
         },
         {
             "exercise_id": training_log["pulldown"],
             "exercise_name": "Jalón al pecho",
             "action": "increase_reps",
             "last_performed_on": "2026-09-15",
-            "last_weight_kg": 50.0,
-            "last_reps": [10, 10],
-            "target_reps": None,
-            "suggested_weight_kg": 50.0,
+            "last_sets": [{"reps": 10, "weight_kg": 50.0, "rpe": 9.0}] * 2,
+            "target_sets": [],
+            "suggested_sets": [{"reps": 10, "weight_kg": 50.0}] * 2,
         },
     ]
     assert overview["personal_records"] == [

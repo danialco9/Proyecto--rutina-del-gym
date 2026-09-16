@@ -13,6 +13,8 @@ from gym_tracker.analysis.metrics import (
 )
 from gym_tracker.analysis.recommendations import (
     Action,
+    PerformedSet,
+    PlannedSet,
     ProgressionRules,
     Recommendation,
     decide_progression,
@@ -22,6 +24,8 @@ from gym_tracker.analysis.recommendations import (
 __all__ = [
     "SCHEMAS",
     "Action",
+    "PerformedSet",
+    "PlannedSet",
     "ProgressionRules",
     "Recommendation",
     "TrainingLog",

@@ -11,7 +11,7 @@ from sqlalchemy import Select, or_, select
 from sqlalchemy.orm import Session
 
 from gym_tracker.analysis.loader import SCHEMAS, TrainingLog
-from gym_tracker.models import BodyMeasurement, Exercise, Routine, RoutineExercise, Workout, WorkoutSet
+from gym_tracker.models import BodyMeasurement, Exercise, Routine, RoutineExercise, RoutineSet, Workout, WorkoutSet
 
 
 def _frame(table: str, rows: Iterable[Sequence[Any]]) -> pd.DataFrame:
@@ -50,12 +50,13 @@ def load_user_log(session: Session, user_id: int) -> TrainingLog:
             RoutineExercise.routine_id,
             RoutineExercise.exercise_id,
             RoutineExercise.position,
-            RoutineExercise.target_sets,
-            RoutineExercise.target_reps,
-            RoutineExercise.target_weight_kg,
-            RoutineExercise.target_rpe,
+            RoutineSet.set_number,
+            RoutineSet.target_reps,
+            RoutineSet.target_weight_kg,
+            RoutineSet.target_rpe,
         )
         .join(Routine)
+        .outerjoin(RoutineSet)
         .where(Routine.user_id == user_id)
     )
     workouts = select(Workout.id, Workout.started_at, Workout.routine_id, Workout.notes).where(

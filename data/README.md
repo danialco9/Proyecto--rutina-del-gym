@@ -7,7 +7,7 @@ mirror the planned PostgreSQL schema so the data can be imported with no changes
 | --- | --- |
 | `exercises.csv` | Exercise catalog (`exercise_id` is a slug, e.g. `leg-press`) |
 | `routines.csv` | Routine templates (e.g. `push`, `pull`, `legs`) |
-| `routine_exercises.csv` | Exercises in each routine, with targets |
+| `routine_exercises.csv` | One row per planned set of each exercise in a routine (`set_number`, optional target reps, weight and RPE) |
 | `workouts.csv` | One row per training session |
 | `workout_sets.csv` | One row per set performed |
 | `body_measurements.csv` | Body weight and measurements over time |

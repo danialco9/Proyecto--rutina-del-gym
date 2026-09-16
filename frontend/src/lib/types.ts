@@ -44,14 +44,18 @@ export interface Exercise {
   is_custom: boolean
 }
 
+export interface RoutineSet {
+  set_number: number
+  target_reps: number | null
+  target_weight_kg: number | null
+  target_rpe: number | null
+}
+
 export interface RoutineExercise {
   id: number
   position: number
   exercise: Exercise
-  target_sets: number | null
-  target_reps: number | null
-  target_weight_kg: number | null
-  target_rpe: number | null
+  sets: RoutineSet[]
 }
 
 export interface Routine {
@@ -62,12 +66,11 @@ export interface Routine {
   exercises: RoutineExercise[]
 }
 
+export type RoutineSetIn = Omit<RoutineSet, 'set_number'>
+
 export interface RoutineExerciseIn {
   exercise_id: number
-  target_sets: number | null
-  target_reps: number | null
-  target_weight_kg: number | null
-  target_rpe: number | null
+  sets: RoutineSetIn[]
 }
 
 export interface RoutineIn {
@@ -127,15 +130,20 @@ export type BodyMeasurementIn = Omit<BodyMeasurement, 'id'>
 
 export type ProgressionAction = 'increase_load' | 'increase_reps' | 'hold' | 'deload'
 
+export interface PlannedSet {
+  reps: number | null
+  weight_kg: number | null
+}
+
 export interface Recommendation {
   exercise_id: number
   exercise_name: string
   action: ProgressionAction
   last_performed_on: string
-  last_weight_kg: number
-  last_reps: number[]
-  target_reps: number | null
-  suggested_weight_kg: number
+  last_sets: { reps: number; weight_kg: number; rpe: number | null }[]
+  /** The routine plan; empty when the exercise was done outside one. */
+  target_sets: PlannedSet[]
+  suggested_sets: PlannedSet[]
 }
 
 export interface PersonalRecord {

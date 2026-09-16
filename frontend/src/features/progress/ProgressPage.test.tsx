@@ -28,30 +28,39 @@ const OVERVIEW: ProgressOverview = {
       exercise_name: 'Sentadilla con barra',
       action: 'increase_load',
       last_performed_on: '2026-09-09',
-      last_weight_kg: 77.5,
-      last_reps: [8, 8, 8, 8],
-      target_reps: 6,
-      suggested_weight_kg: 80,
+      last_sets: Array.from({ length: 4 }, () => ({ reps: 8, weight_kg: 77.5, rpe: 8 })),
+      target_sets: Array.from({ length: 4 }, () => ({ reps: 6, weight_kg: 80 })),
+      suggested_sets: Array.from({ length: 4 }, () => ({ reps: 6, weight_kg: 80 })),
     },
     {
       exercise_id: 1,
       exercise_name: 'Press banca con barra',
       action: 'increase_reps',
       last_performed_on: '2026-09-15',
-      last_weight_kg: 67.5,
-      last_reps: [6, 6, 4],
-      target_reps: 8,
-      suggested_weight_kg: 67.5,
+      last_sets: [6, 6, 4].map((reps) => ({ reps, weight_kg: 67.5, rpe: 9 })),
+      target_sets: [],
+      suggested_sets: [6, 6, 4].map((reps) => ({ reps, weight_kg: 67.5 })),
     },
     {
       exercise_id: 5,
       exercise_name: 'Prensa de piernas',
       action: 'deload',
       last_performed_on: '2026-09-09',
-      last_weight_kg: 142.5,
-      last_reps: [14, 14, 13],
-      target_reps: 12,
-      suggested_weight_kg: 127.5,
+      last_sets: [
+        { reps: 14, weight_kg: 122.5, rpe: 8 },
+        { reps: 12, weight_kg: 132.5, rpe: 8 },
+        { reps: 9, weight_kg: 142.5, rpe: 9 },
+      ],
+      target_sets: [
+        { reps: 12, weight_kg: 120 },
+        { reps: 10, weight_kg: 130 },
+        { reps: 8, weight_kg: 140 },
+      ],
+      suggested_sets: [
+        { reps: 12, weight_kg: 110 },
+        { reps: 10, weight_kg: 117.5 },
+        { reps: 8, weight_kg: 127.5 },
+      ],
     },
   ],
   personal_records: [
@@ -122,11 +131,13 @@ describe('Progress', () => {
     const increase = screen.getByRole('heading', { name: /Sube el peso/ }).closest('section')
     expect(increase).not.toBeNull()
     expect(within(increase!).getByText('Sentadilla con barra')).toBeInTheDocument()
-    expect(within(increase!).getByText('80 kg')).toBeInTheDocument()
+    expect(within(increase!).getByText('4 × 6 · 80 kg')).toBeInTheDocument()
 
     const deload = screen.getByRole('heading', { name: /Descarga/ }).closest('section')
-    expect(within(deload!).getByText('127,5 kg')).toBeInTheDocument()
-    expect(within(deload!).getByText(/× 14\/14\/13 · objetivo 12/)).toBeInTheDocument()
+    expect(
+      within(deload!).getByText(/122,5×14 · 132,5×12 · 142,5×9 · objetivo 120×12 · 130×10 · 140×8/),
+    ).toBeInTheDocument()
+    expect(within(deload!).getByText('110×12 · 117,5×10 · 127,5×8')).toBeInTheDocument()
   })
 
   it('charts the progress of the chosen exercise', async () => {

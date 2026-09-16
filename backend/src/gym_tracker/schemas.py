@@ -95,12 +95,15 @@ class ExerciseRead(ORMModel):
 # Routines
 
 
-class RoutineExerciseIn(InputModel):
-    exercise_id: int
-    target_sets: int | None = Field(default=None, ge=1, le=20)
+class RoutineSetIn(InputModel):
     target_reps: int | None = Field(default=None, ge=1, le=100)
     target_weight_kg: float | None = Field(default=None, ge=0, le=1000)
     target_rpe: float | None = Field(default=None, ge=1, le=10)
+
+
+class RoutineExerciseIn(InputModel):
+    exercise_id: int
+    sets: list[RoutineSetIn] = Field(default_factory=list, max_length=20)
 
 
 class RoutineIn(InputModel):
@@ -109,14 +112,18 @@ class RoutineIn(InputModel):
     exercises: list[RoutineExerciseIn] = Field(default_factory=list, max_length=30)
 
 
+class RoutineSetRead(ORMModel):
+    set_number: int
+    target_reps: int | None
+    target_weight_kg: float | None
+    target_rpe: float | None
+
+
 class RoutineExerciseRead(ORMModel):
     id: int
     position: int
     exercise: ExerciseRead
-    target_sets: int | None
-    target_reps: int | None
-    target_weight_kg: float | None
-    target_rpe: float | None
+    sets: list[RoutineSetRead]
 
 
 class RoutineRead(ORMModel):
@@ -225,15 +232,27 @@ class ActivityRead(BaseModel):
     last_workout_on: date | None
 
 
+class PerformedSetRead(BaseModel):
+    reps: int
+    weight_kg: float
+    rpe: float | None
+
+
+class PlannedSetRead(BaseModel):
+    reps: int | None
+    weight_kg: float | None
+
+
 class RecommendationRead(BaseModel):
+    """``target_sets`` is the routine plan (empty without one); ``suggested_sets`` always has weights."""
+
     exercise_id: int
     exercise_name: str
     action: Action
     last_performed_on: date
-    last_weight_kg: float
-    last_reps: list[int]
-    target_reps: int | None
-    suggested_weight_kg: float
+    last_sets: list[PerformedSetRead]
+    target_sets: list[PlannedSetRead]
+    suggested_sets: list[PlannedSetRead]
 
 
 class PersonalRecordRead(BaseModel):

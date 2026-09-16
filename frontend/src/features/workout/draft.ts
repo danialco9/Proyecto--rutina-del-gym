@@ -17,13 +17,17 @@ const draftSetSchema = z.object({
   done: z.boolean(),
 })
 
+const plannedSetSchema = z.object({
+  reps: z.number().int().nullable(),
+  weightKg: z.number().nullable(),
+})
+
 const draftExerciseSchema = z.object({
   id: z.string(),
   exerciseId: z.number().int(),
   name: z.string(),
-  targetSets: z.number().int().nullable(),
-  targetReps: z.number().int().nullable(),
-  targetWeightKg: z.number().nullable(),
+  // The routine's planned sets, shown as the target. Drafts saved before per-set plans have none.
+  targets: z.array(plannedSetSchema).default([]),
   sets: z.array(draftSetSchema),
 })
 
@@ -83,15 +87,22 @@ function newSet(template?: Pick<DraftSet, 'reps' | 'weightKg' | 'rpe'>): DraftSe
 }
 
 function entryFromRoutine(item: RoutineExercise): DraftExercise {
-  const planned = { reps: item.target_reps ?? DEFAULT_REPS, weightKg: item.target_weight_kg ?? 0, rpe: null }
+  const targets = item.sets.map((planned) => ({
+    reps: planned.target_reps,
+    weightKg: planned.target_weight_kg,
+  }))
   return {
     id: newId(),
     exerciseId: item.exercise.id,
     name: item.exercise.name,
-    targetSets: item.target_sets,
-    targetReps: item.target_reps,
-    targetWeightKg: item.target_weight_kg,
-    sets: Array.from({ length: item.target_sets ?? 1 }, () => newSet(planned)),
+    targets,
+    // Each planned set is prefilled with its own reps and weight.
+    sets:
+      targets.length === 0
+        ? [newSet()]
+        : targets.map((target) =>
+            newSet({ reps: target.reps ?? DEFAULT_REPS, weightKg: target.weightKg ?? 0, rpe: null }),
+          ),
   }
 }
 
@@ -142,9 +153,7 @@ export function draftReducer(draft: WorkoutDraft | null, action: DraftAction): W
             id: newId(),
             exerciseId: action.exercise.id,
             name: action.exercise.name,
-            targetSets: null,
-            targetReps: null,
-            targetWeightKg: null,
+            targets: [],
             sets: [newSet()],
           },
         ],

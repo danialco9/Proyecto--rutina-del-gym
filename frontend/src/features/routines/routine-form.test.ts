@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import type { Routine } from '@/lib/types'
-import { formToRoutinePayload, parseOptionalNumber, routineFormSchema, routineToForm } from './routine-form'
+import {
+  formToRoutinePayload,
+  nextSet,
+  parseOptionalNumber,
+  routineFormSchema,
+  routineToForm,
+} from './routine-form'
 
 const legDay: Routine = {
   id: 7,
@@ -11,10 +17,10 @@ const legDay: Routine = {
     {
       id: 1,
       position: 1,
-      target_sets: 4,
-      target_reps: 8,
-      target_weight_kg: 60,
-      target_rpe: null,
+      sets: [
+        { set_number: 1, target_reps: 10, target_weight_kg: 60, target_rpe: null },
+        { set_number: 2, target_reps: 8, target_weight_kg: 70, target_rpe: 8.5 },
+      ],
       exercise: {
         id: 11,
         slug: 'back-squat',
@@ -39,10 +45,10 @@ describe('routine form', () => {
         {
           exerciseId: 11,
           name: 'Sentadilla con barra',
-          targetSets: 4,
-          targetReps: 8,
-          targetWeightKg: 60,
-          targetRpe: null,
+          sets: [
+            { targetReps: 10, targetWeightKg: 60, targetRpe: null },
+            { targetReps: 8, targetWeightKg: 70, targetRpe: 8.5 },
+          ],
         },
       ],
     })
@@ -50,9 +56,23 @@ describe('routine form', () => {
       name: 'Pierna A',
       description: null,
       exercises: [
-        { exercise_id: 11, target_sets: 4, target_reps: 8, target_weight_kg: 60, target_rpe: null },
+        {
+          exercise_id: 11,
+          sets: [
+            { target_reps: 10, target_weight_kg: 60, target_rpe: null },
+            { target_reps: 8, target_weight_kg: 70, target_rpe: 8.5 },
+          ],
+        },
       ],
     })
+  })
+
+  it('starts a new set as a copy of the previous one', () => {
+    const previous = { targetReps: 8, targetWeightKg: 70, targetRpe: null }
+
+    expect(nextSet(previous)).toEqual(previous)
+    expect(nextSet(previous)).not.toBe(previous)
+    expect(nextSet(undefined)).toEqual({ targetReps: null, targetWeightKg: null, targetRpe: null })
   })
 
   it('parses optional numeric inputs', () => {
@@ -62,7 +82,7 @@ describe('routine form', () => {
     expect(parseOptionalNumber('abc')).toBeNaN()
   })
 
-  it('validates the name and the targets with Spanish messages', () => {
+  it('validates the name and every set with Spanish messages', () => {
     const result = routineFormSchema.safeParse({
       name: '  ',
       description: '',
@@ -70,10 +90,10 @@ describe('routine form', () => {
         {
           exerciseId: 11,
           name: 'Sentadilla',
-          targetSets: 0,
-          targetReps: 1.5,
-          targetWeightKg: Number.NaN,
-          targetRpe: 11,
+          sets: [
+            { targetReps: 1.5, targetWeightKg: Number.NaN, targetRpe: 11 },
+            { targetReps: 0, targetWeightKg: null, targetRpe: null },
+          ],
         },
       ],
     })
@@ -82,11 +102,28 @@ describe('routine form', () => {
     expect(result.error?.issues.map((issue) => issue.message)).toEqual(
       expect.arrayContaining([
         'Ponle un nombre a la rutina',
-        'Series: mínimo 1',
         'Reps: usa un número entero',
         'Peso: introduce un número',
         'RPE: máximo 10',
+        'Reps: mínimo 1',
       ]),
     )
+  })
+
+  it('limits the number of sets per exercise', () => {
+    const sets = Array.from({ length: 21 }, () => ({
+      targetReps: null,
+      targetWeightKg: null,
+      targetRpe: null,
+    }))
+    const result = routineFormSchema.safeParse({
+      name: 'Pierna',
+      description: '',
+      exercises: [{ exerciseId: 11, name: 'Sentadilla', sets }],
+    })
+
+    expect(result.error?.issues.map((issue) => issue.message)).toEqual([
+      'Como máximo 20 series por ejercicio',
+    ])
   })
 })

@@ -1,4 +1,4 @@
-"""Routine templates with ordered exercises and targets."""
+"""Routine templates with ordered exercises and their planned sets."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from gym_tracker.api.common import commit_or_conflict, ensure_exercises_visible, not_found
 from gym_tracker.api.deps import CurrentUser, SessionDep
-from gym_tracker.models import Routine, RoutineExercise, User
+from gym_tracker.models import Routine, RoutineExercise, RoutineSet, User
 from gym_tracker.schemas import RoutineIn, RoutineRead
 
 router = APIRouter(prefix="/routines", tags=["routines"])
@@ -20,7 +20,10 @@ def _routines(user: User) -> Select[tuple[Routine]]:
     return (
         select(Routine)
         .where(Routine.user_id == user.id)
-        .options(selectinload(Routine.exercises).selectinload(RoutineExercise.exercise))
+        .options(
+            selectinload(Routine.exercises).selectinload(RoutineExercise.exercise),
+            selectinload(Routine.exercises).selectinload(RoutineExercise.sets),
+        )
     )
 
 
@@ -33,7 +36,14 @@ def _get_routine(session: Session, routine_id: int, user: User) -> Routine:
 
 def _routine_exercises(payload: RoutineIn) -> list[RoutineExercise]:
     return [
-        RoutineExercise(position=position, **item.model_dump())
+        RoutineExercise(
+            position=position,
+            exercise_id=item.exercise_id,
+            sets=[
+                RoutineSet(set_number=set_number, **planned.model_dump())
+                for set_number, planned in enumerate(item.sets, start=1)
+            ],
+        )
         for position, item in enumerate(payload.exercises, start=1)
     ]
 

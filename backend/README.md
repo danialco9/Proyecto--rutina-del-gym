@@ -24,7 +24,9 @@ FastAPI service and analytics engine for the gym tracker.
   Every resource is scoped to the authenticated user.
 - **Analytics** (`gym_tracker.analysis`): estimated 1RM (Epley), personal records, weekly hard
   sets per muscle group, body weight trend, plateau detection and rule-based double progression.
-  The same pandas code runs on the CSV log and, through `analysis.database`, on each user's data
+  Routines plan each set (reps, weight, RPE), and recommendations compare the last session with
+  that plan set by set, suggesting the whole next session with the same shape (e.g. a pyramid moves
+  up 2.5 kg on every set). The same pandas code runs on the CSV log and, through `analysis.database`, on each user's data
   in PostgreSQL to serve the progress endpoints. A plateau is judged within the current block
   (since the top weight last went down), so rebuilding after a deload is not flagged again.
 - **Demo account**: `gym-admin seed-demo` creates `demo@gymtracker.dev` (password
