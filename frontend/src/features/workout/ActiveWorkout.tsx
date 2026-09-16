@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { ApiError } from '@/lib/api'
 import { formatTime, plural } from '@/lib/format'
 import { completedSetCount, toWorkoutPayload, type DraftAction, type WorkoutDraft } from './draft'
 import { ExerciseCard } from './ExerciseCard'
@@ -35,8 +36,12 @@ export function ActiveWorkout({ draft, dispatch }: ActiveWorkoutProps) {
         toast.success('Entreno guardado')
         navigate('/')
       },
-      onError: () => {
-        toast.error('No se pudo guardar el entreno. El borrador sigue guardado en este dispositivo.')
+      onError: (error) => {
+        toast.error(
+          error instanceof ApiError && error.status === 401
+            ? 'Tu sesión ha caducado. Entra de nuevo para guardar el entreno: sigue guardado en este dispositivo.'
+            : 'No se pudo guardar el entreno. El borrador sigue guardado en este dispositivo.',
+        )
       },
     })
   }

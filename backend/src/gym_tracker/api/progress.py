@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Annotated
 
 import pandas as pd
@@ -21,7 +21,7 @@ from gym_tracker.analysis import (
 )
 from gym_tracker.analysis.database import load_user_log
 from gym_tracker.api.common import not_found, visible_to
-from gym_tracker.api.deps import CurrentUser, SessionDep
+from gym_tracker.api.deps import CurrentUser, SessionDep, SettingsDep
 from gym_tracker.models import Exercise
 from gym_tracker.schemas import (
     ActivityRead,
@@ -43,8 +43,9 @@ router = APIRouter(prefix="/progress", tags=["progress"])
 VOLUME_WEEKS = 8
 
 
-def get_today() -> date:
-    return date.today()
+def get_today(settings: SettingsDep) -> date:
+    """Today in the configured time zone, so weeks turn over at local midnight."""
+    return datetime.now(settings.zone).date()
 
 
 TodayDep = Annotated[date, Depends(get_today)]
@@ -131,9 +132,11 @@ def _body_weight(log: TrainingLog) -> BodyWeightRead:
 
 
 @router.get("/overview")
-def read_overview(session: SessionDep, user: CurrentUser, today: TodayDep) -> ProgressOverviewRead:
+def read_overview(
+    session: SessionDep, user: CurrentUser, settings: SettingsDep, today: TodayDep
+) -> ProgressOverviewRead:
     """Activity, next-session recommendations, records, weekly volume and body weight trend."""
-    log = load_user_log(session, user.id)
+    log = load_user_log(session, user.id, settings.zone)
     work = working_sets(log)
     bests = session_bests(work)
     return ProgressOverviewRead(
@@ -146,12 +149,14 @@ def read_overview(session: SessionDep, user: CurrentUser, today: TodayDep) -> Pr
 
 
 @router.get("/exercises/{exercise_id}")
-def read_exercise_progress(exercise_id: int, session: SessionDep, user: CurrentUser) -> ExerciseProgressRead:
+def read_exercise_progress(
+    exercise_id: int, session: SessionDep, user: CurrentUser, settings: SettingsDep
+) -> ExerciseProgressRead:
     """Best estimated 1RM, top weight and volume of every session that included the exercise."""
     name = session.scalar(select(Exercise.name).where(Exercise.id == exercise_id, visible_to(user)))
     if name is None:
         raise not_found("Exercise")
-    work = working_sets(load_user_log(session, user.id))
+    work = working_sets(load_user_log(session, user.id, settings.zone))
     bests = session_bests(work[work["exercise_id"] == str(exercise_id)])
     return ExerciseProgressRead(
         exercise_id=exercise_id,
