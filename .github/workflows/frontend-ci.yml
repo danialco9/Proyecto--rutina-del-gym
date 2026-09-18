@@ -1,15 +1,11 @@
 name: Frontend CI
 
+# Every push runs the full checks, on any branch, whatever the commit touches:
+# a green tick on each commit is worth more than the saved minutes.
 on:
-  pull_request:
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-ci.yml"
   push:
+  pull_request:
     branches: [main]
-    paths:
-      - "frontend/**"
-      - ".github/workflows/frontend-ci.yml"
 
 permissions:
   contents: read
