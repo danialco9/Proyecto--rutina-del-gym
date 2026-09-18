@@ -1,5 +1,8 @@
 name: gym-tracker
 
+# `docker compose up` runs the whole app at http://localhost:8080 with a demo account.
+# The defaults are for local use only; override them in .env (see .env.example).
+
 services:
   db:
     image: postgres:18-alpine
@@ -7,7 +10,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-gym_tracker}
       POSTGRES_USER: ${POSTGRES_USER:-gym}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gym-local-password}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -17,6 +20,46 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      GYM_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-gym}:${POSTGRES_PASSWORD:-gym-local-password}@db:5432/${POSTGRES_DB:-gym_tracker}
+      GYM_JWT_SECRET: ${GYM_JWT_SECRET:-local-development-secret-do-not-use-in-production}
+      GYM_COOKIE_SECURE: "false"
+      GYM_DEMO_ENABLED: "true"
+      GYM_SEED_DEMO: "true"
+      GYM_TIMEZONE: ${GYM_TIMEZONE:-Europe/Madrid}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_DEMO_ENABLED: "true"
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "${WEB_PORT:-8080}:80"
 
 volumes:
   postgres-data:

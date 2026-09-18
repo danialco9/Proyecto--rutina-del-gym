@@ -20,20 +20,37 @@ change routines, exercises or intensity.
 
 ```
 backend/    FastAPI service, analytics engine and production Dockerfile
-frontend/   React single-page app (Vercel config in vercel.json)
+frontend/   React single-page app, nginx image and Vercel config
 data/       Interim CSV training log
 docs/       Deployment guide
-docker-compose.yml   Local PostgreSQL
+docker-compose.yml   Full local stack (PostgreSQL, API, web)
 render.yaml          Render Blueprint for the API
 ```
 
 ## Getting started
 
+### Run everything with Docker
+
+Requirements: [Docker](https://docs.docker.com/get-docker/) with Compose.
+
+```bash
+docker compose up --build
+```
+
+Open http://localhost:8080 and press **Probar la demo**: the demo account comes with 12 weeks of
+simulated training. The API docs are at http://localhost:8000/docs.
+
+Compose starts PostgreSQL, the API (it applies the migrations and seeds the exercise catalog and the
+demo account on start) and nginx serving the web app and proxying `/api`. It works without a `.env`
+file; the defaults are for local use only (see `.env.example` to change passwords or ports).
+
+### Develop with hot reload
+
 Requirements: Docker, [uv](https://docs.astral.sh/uv/), Node.js 24 and pnpm.
 
 ```bash
 cp .env.example .env          # then set POSTGRES_PASSWORD, GYM_DATABASE_URL and GYM_JWT_SECRET
-docker compose up -d --wait   # start PostgreSQL
+docker compose up -d --wait db   # start only PostgreSQL
 
 cd backend
 uv sync
