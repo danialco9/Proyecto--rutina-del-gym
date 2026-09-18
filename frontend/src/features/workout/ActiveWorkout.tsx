@@ -54,12 +54,17 @@ export function ActiveWorkout({ draft, dispatch }: ActiveWorkoutProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <header className="flex items-start justify-between gap-2">
-        <div className="space-y-1">
-          <h1 className="font-heading text-xl font-semibold">{draft.routineName ?? 'Entreno libre'}</h1>
-          <p className="text-muted-foreground text-sm">
-            Empezado a las {formatTime(draft.startedAt)} · {completed} {plural(completed, 'serie', 'series')}{' '}
+    // A logging flow reads better in one narrow column, whatever the screen.
+    <div className="mx-auto max-w-2xl space-y-4">
+      {/* The session bar follows the scroll: the count of completed sets stays in sight. */}
+      <header className="bg-background/90 sticky top-0 z-20 -mx-4 flex items-start justify-between gap-2 px-4 py-3 backdrop-blur lg:-mx-2 lg:px-2">
+        <div className="min-w-0 space-y-1">
+          <p className="eyebrow">En curso · {formatTime(draft.startedAt)}</p>
+          <h1 className="font-heading truncate text-xl font-semibold">
+            {draft.routineName ?? 'Entreno libre'}
+          </h1>
+          <p className="text-primary text-sm font-medium tabular-nums">
+            {completed} {plural(completed, 'serie', 'series')}{' '}
             {plural(completed, 'completada', 'completadas')}
           </p>
         </div>

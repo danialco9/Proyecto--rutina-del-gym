@@ -1,21 +1,27 @@
-import { ChartLineIcon, ChevronRightIcon, DumbbellIcon } from 'lucide-react'
+import {
+  ChartLineIcon,
+  ChevronRightIcon,
+  DumbbellIcon,
+  FlameIcon,
+  ScaleIcon,
+  TrendingUpIcon,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
+import heroImage from '@/assets/hero-squat.webp'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { buttonVariants } from '@/components/ui/button'
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useProgressOverview } from '@/features/progress/queries'
 import { loadDraft } from '@/features/workout/draft'
 import { useRecentWorkouts, useRoutines } from '@/features/workout/queries'
-import { formatDate, formatDuration, plural } from '@/lib/format'
-import type { Workout } from '@/lib/types'
+import { formatDate, formatDecimal, formatDuration, formatSignedKg, plural } from '@/lib/format'
+import type { ProgressOverview, Workout } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 function workoutSummary(workout: Workout): string {
   const exerciseCount = new Set(workout.sets.map((set) => set.exercise_id)).size
   const setCount = workout.sets.length
   return [
-    formatDate(workout.started_at),
     formatDuration(workout.started_at, workout.ended_at),
     `${exerciseCount} ${plural(exerciseCount, 'ejercicio', 'ejercicios')}`,
     `${setCount} ${plural(setCount, 'serie', 'series')}`,
@@ -24,9 +30,73 @@ function workoutSummary(workout: Workout): string {
     .join(' · ')
 }
 
-function ProgressSummary() {
-  const overview = useProgressOverview()
-  const recommendations = overview.data?.recommendations ?? []
+function Stat({
+  icon: Icon,
+  label,
+  value,
+  hint,
+}: {
+  icon: typeof FlameIcon
+  label: string
+  value: string
+  hint?: string
+}) {
+  return (
+    <div className="bg-card ring-foreground/10 rounded-xl p-4 ring-1">
+      <p className="eyebrow flex items-center gap-1.5">
+        <Icon className="size-3.5" aria-hidden />
+        {label}
+      </p>
+      <p className="stat-number mt-2.5">{value}</p>
+      {hint !== undefined && <p className="text-muted-foreground mt-1 text-xs">{hint}</p>}
+    </div>
+  )
+}
+
+/** Kilos lifted in the most recent week the analytics engine reported. */
+function weekVolumeKg(overview: ProgressOverview): number | null {
+  const week = overview.weekly_volume.at(-1)
+  return week === undefined ? null : week.muscles.reduce((total, muscle) => total + muscle.volume_kg, 0)
+}
+
+function Stats({ overview }: { overview: ProgressOverview }) {
+  const workouts = overview.activity.workouts_last_7_days
+  const volume = weekVolumeKg(overview)
+  const lastWeight = overview.body_weight.entries.at(-1)
+  const weeklyChange = overview.body_weight.weekly_change_kg
+
+  return (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <Stat
+        icon={FlameIcon}
+        label="Esta semana"
+        value={String(workouts)}
+        hint={plural(workouts, 'entreno', 'entrenos')}
+      />
+      <Stat
+        icon={TrendingUpIcon}
+        label="Volumen"
+        value={volume === null ? '—' : `${formatDecimal(Math.round(volume))}`}
+        hint="kg levantados"
+      />
+      <Stat
+        icon={DumbbellIcon}
+        label="Ejercicios"
+        value={String(overview.personal_records.length)}
+        hint="con marcas registradas"
+      />
+      <Stat
+        icon={ScaleIcon}
+        label="Peso"
+        value={lastWeight === undefined ? '—' : formatDecimal(lastWeight.weight_kg)}
+        hint={weeklyChange === null ? 'kg' : `kg · ${formatSignedKg(weeklyChange)}/sem`}
+      />
+    </div>
+  )
+}
+
+function NextSession({ overview }: { overview: ProgressOverview }) {
+  const recommendations = overview.recommendations
   if (recommendations.length === 0) {
     return null
   }
@@ -43,7 +113,7 @@ function ProgressSummary() {
   return (
     <Link
       to="/progreso"
-      className="bg-card hover:bg-muted flex items-center justify-between gap-3 rounded-xl border p-4 transition-colors"
+      className="bg-card ring-foreground/10 hover:bg-accent flex items-center justify-between gap-3 rounded-xl p-4 ring-1 transition-colors"
     >
       <span className="flex min-w-0 items-center gap-3">
         <ChartLineIcon className="text-primary size-5 shrink-0" aria-hidden />
@@ -61,24 +131,52 @@ export function HomePage() {
   const [hasDraft] = useState(() => loadDraft() !== null)
   const workouts = useRecentWorkouts(5)
   const routines = useRoutines()
+  const overview = useProgressOverview()
   const routineNames = new Map(routines.data?.map((routine) => [routine.id, routine.name]))
 
   return (
     <div className="space-y-8">
-      <section className="space-y-4">
-        <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-semibold">Tu entrenamiento, medido</h1>
-          <p className="text-muted-foreground">Registra cada serie y decide con datos cuándo progresar.</p>
+      <section className="relative overflow-hidden rounded-2xl">
+        <img
+          src={heroImage}
+          alt=""
+          className="absolute inset-0 size-full object-cover"
+          fetchPriority="high"
+          aria-hidden
+        />
+        <div className="photo-scrim" />
+        <div className="relative flex flex-col gap-5 p-6 sm:p-8 lg:min-h-64 lg:justify-end">
+          <div className="space-y-2">
+            <p className="eyebrow text-white/70">Gym Tracker</p>
+            <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance text-white sm:text-4xl">
+              Tu entrenamiento, medido
+            </h1>
+            <p className="max-w-md text-sm text-white/80">
+              Registra cada serie y decide con datos cuándo progresar.
+            </p>
+          </div>
+          <Link
+            to="/entrenar"
+            className={cn(
+              buttonVariants({ size: 'lg' }),
+              'h-12 w-full text-base sm:w-auto sm:self-start sm:px-8',
+            )}
+          >
+            <DumbbellIcon />
+            {hasDraft ? 'Continuar entreno' : 'Empezar entreno'}
+          </Link>
         </div>
-        <Link to="/entrenar" className={cn(buttonVariants({ size: 'lg' }), 'h-12 w-full text-base')}>
-          <DumbbellIcon />
-          {hasDraft ? 'Continuar entreno' : 'Empezar entreno'}
-        </Link>
-        <ProgressSummary />
       </section>
 
+      {overview.data !== undefined && (
+        <section className="space-y-3">
+          <Stats overview={overview.data} />
+          <NextSession overview={overview.data} />
+        </section>
+      )}
+
       <section className="space-y-3">
-        <h2 className="font-heading text-lg font-medium">Últimos entrenos</h2>
+        <h2 className="eyebrow">Últimos entrenos</h2>
         {workouts.isPending && <p className="text-muted-foreground text-sm">Cargando…</p>}
         {workouts.isError && (
           <Alert variant="destructive">
@@ -90,19 +188,25 @@ export function HomePage() {
             Todavía no has registrado ningún entreno.
           </p>
         )}
-        <ul className="space-y-2">
+        <ul className="grid gap-2 lg:grid-cols-2">
           {workouts.data?.map((workout) => (
-            <li key={workout.id}>
-              <Card size="sm">
-                <CardHeader>
-                  <CardTitle>
-                    {workout.routine_id === null
-                      ? 'Entreno libre'
-                      : (routineNames.get(workout.routine_id) ?? 'Rutina')}
-                  </CardTitle>
-                  <CardDescription>{workoutSummary(workout)}</CardDescription>
-                </CardHeader>
-              </Card>
+            <li
+              key={workout.id}
+              className="bg-card ring-foreground/10 flex items-center gap-3 rounded-xl p-4 ring-1"
+            >
+              <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
+                <DumbbellIcon className="size-5" aria-hidden />
+              </span>
+              <span className="min-w-0">
+                <span className="block truncate font-medium">
+                  {workout.routine_id === null
+                    ? 'Entreno libre'
+                    : (routineNames.get(workout.routine_id) ?? 'Rutina')}
+                </span>
+                <span className="text-muted-foreground block text-sm">
+                  {formatDate(workout.started_at)} · {workoutSummary(workout)}
+                </span>
+              </span>
             </li>
           ))}
         </ul>

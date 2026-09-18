@@ -1,5 +1,6 @@
 import { ChevronRightIcon, PlusIcon } from 'lucide-react'
 import { Link } from 'react-router'
+import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { plural } from '@/lib/format'
@@ -15,19 +16,20 @@ export function StartWorkout({ onStart }: StartWorkoutProps) {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="font-heading text-2xl font-semibold">Nuevo entreno</h1>
-        <p className="text-muted-foreground">Elige una rutina o empieza un entreno libre.</p>
-      </header>
+      <PageHeader
+        eyebrow="Entrenar"
+        title="Nuevo entreno"
+        description="Elige una rutina o empieza un entreno libre."
+      />
 
-      <Button size="lg" className="h-12 w-full text-base" onClick={() => onStart()}>
+      <Button size="lg" className="h-12 w-full text-base sm:w-auto sm:px-8" onClick={() => onStart()}>
         <PlusIcon />
         Entreno libre
       </Button>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="font-heading text-lg font-medium">Tus rutinas</h2>
+          <h2 className="eyebrow">Tus rutinas</h2>
           <Link to="/rutinas" className="text-primary text-sm font-medium underline-offset-4 hover:underline">
             Gestionar
           </Link>
@@ -47,13 +49,13 @@ export function StartWorkout({ onStart }: StartWorkoutProps) {
             o empieza un entreno libre.
           </p>
         )}
-        <ul className="space-y-2">
+        <ul className="grid gap-3 lg:grid-cols-2">
           {routines.data?.map((routine) => (
             <li key={routine.id}>
               <button
                 type="button"
                 onClick={() => onStart(routine)}
-                className="bg-card hover:bg-muted flex w-full items-center justify-between rounded-xl border p-4 text-left transition-colors"
+                className="bg-card ring-foreground/10 hover:bg-accent hover:ring-primary/40 flex h-full w-full items-center justify-between rounded-xl p-4 text-left ring-1 transition-colors"
               >
                 <span>
                   <span className="block font-medium">{routine.name}</span>

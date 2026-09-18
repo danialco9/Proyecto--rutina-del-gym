@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router'
+import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDay, formatSignedKg } from '@/lib/format'
@@ -28,11 +29,12 @@ export function ProgressPage() {
   const tab: TabValue = isTab(requested) ? requested : 'proxima'
 
   return (
-    <div className="space-y-5">
-      <header className="space-y-1">
-        <h1 className="font-heading text-2xl font-semibold">Progreso</h1>
-        <p className="text-muted-foreground text-sm">Qué toca en la próxima sesión y cómo evolucionas.</p>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        eyebrow="Análisis"
+        title="Progreso"
+        description="Qué toca en la próxima sesión y cómo evolucionas."
+      />
 
       {overview.isPending && <p className="text-muted-foreground text-sm">Calculando tu progreso…</p>}
       {overview.isError && (
@@ -43,7 +45,7 @@ export function ProgressPage() {
 
       {overview.data && (
         <>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-3">
             <StatTile
               label="Últimos 7 días"
               value={String(overview.data.activity.workouts_last_7_days)}
@@ -77,7 +79,7 @@ export function ProgressPage() {
               }
             }}
           >
-            <TabsList className="h-10 w-full">
+            <TabsList className="h-10 w-full lg:w-auto">
               {TABS.map(({ value, label }) => (
                 <TabsTrigger key={value} value={value}>
                   {label}

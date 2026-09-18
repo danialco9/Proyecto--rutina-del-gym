@@ -3,85 +3,49 @@
 @import 'shadcn/tailwind.css';
 @import '@fontsource-variable/geist';
 
-/* The theme follows the operating system preference. */
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/* The theme is always dark, so shadcn's `dark:` refinements must always apply, whatever the
+   operating system prefers. */
+@custom-variant dark (&);
 
+/* The app ships a single dark theme: the layout leans on photography and glow, which a light
+   surface washes out. Charts keep the palette validated for colour-vision deficiencies. */
 :root {
-  color-scheme: light dark;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.596 0.145 163.225);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.696 0.17 162.48);
-  /* Categorical chart slots, validated for colour-vision deficiencies in this order (light surface). */
-  --chart-1: #2a78d6;
-  --chart-2: #eb6834;
-  --chart-3: #1baf7a;
-  --chart-4: #eda100;
-  --chart-5: #e87ba4;
+  color-scheme: dark;
+  --background: oklch(0.16 0.012 258);
+  --foreground: oklch(0.97 0.004 258);
+  --card: oklch(0.21 0.014 258);
+  --card-foreground: oklch(0.97 0.004 258);
+  --popover: oklch(0.21 0.014 258);
+  --popover-foreground: oklch(0.97 0.004 258);
+  --primary: oklch(0.86 0.21 136);
+  --primary-foreground: oklch(0.22 0.06 140);
+  --secondary: oklch(0.27 0.014 258);
+  --secondary-foreground: oklch(0.97 0.004 258);
+  --muted: oklch(0.27 0.014 258);
+  --muted-foreground: oklch(0.71 0.012 258);
+  --accent: oklch(0.3 0.016 258);
+  --accent-foreground: oklch(0.97 0.004 258);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.86 0.21 136);
+  /* Categorical chart slots, validated for colour-vision deficiencies in this order (dark surface). */
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
+  --chart-5: #d55181;
   --chart-6: #008300;
-  --chart-other: #a3a29c;
+  --chart-other: #6b6a65;
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.596 0.145 163.225);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.696 0.17 162.48);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.765 0.177 163.223);
-    --primary-foreground: oklch(0.262 0.051 172.552);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.596 0.145 163.225);
-    /* The same hues stepped for the dark surface. */
-    --chart-1: #3987e5;
-    --chart-2: #d95926;
-    --chart-3: #199e70;
-    --chart-4: #c98500;
-    --chart-5: #d55181;
-    --chart-6: #008300;
-    --chart-other: #6b6a65;
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.765 0.177 163.223);
-    --sidebar-primary-foreground: oklch(0.262 0.051 172.552);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.596 0.145 163.225);
-  }
+  --sidebar: oklch(0.19 0.013 258);
+  --sidebar-foreground: oklch(0.97 0.004 258);
+  --sidebar-primary: oklch(0.86 0.21 136);
+  --sidebar-primary-foreground: oklch(0.22 0.06 140);
+  --sidebar-accent: oklch(0.27 0.014 258);
+  --sidebar-accent-foreground: oklch(0.97 0.004 258);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.86 0.21 136);
 }
 
 @theme inline {
@@ -138,5 +102,22 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+}
+
+@layer components {
+  /* Big figures (weights, streaks, volumes) line up in columns and read as data, not prose. */
+  .stat-number {
+    @apply font-heading text-3xl leading-none font-semibold tracking-tight tabular-nums;
+  }
+
+  /* Section titles in the sports look: short, upper case and widely spaced. */
+  .eyebrow {
+    @apply text-muted-foreground text-xs font-medium tracking-[0.14em] uppercase;
+  }
+
+  /* Dark photo overlay: keeps white text readable whatever the picture underneath. */
+  .photo-scrim {
+    @apply absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/25;
   }
 }

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useRef, useState } from 'react'
+import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { formatKg, formatSignedKg } from '@/lib/format'
 import { localToday } from './measurement-form'
@@ -24,12 +25,11 @@ export function MeasurementsPage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1">
-        <h1 className="font-heading text-2xl font-semibold">Medidas</h1>
-        <p className="text-muted-foreground text-sm">
-          Pésate en condiciones parecidas (por ejemplo, en ayunas) para comparar mejor.
-        </p>
-      </header>
+      <PageHeader
+        eyebrow="Cuerpo"
+        title="Medidas"
+        description="Pésate en condiciones parecidas (por ejemplo, en ayunas) para comparar mejor."
+      />
 
       {measurements.isPending && <p className="text-muted-foreground text-sm">Cargando medidas…</p>}
       {measurements.isError && (
@@ -40,28 +40,30 @@ export function MeasurementsPage() {
 
       {measurements.data && (
         <>
-          <div ref={formRef} className="scroll-mt-4">
-            <MeasurementForm
-              key={`${formSeed.date}-${formSeed.version}`}
-              measurements={measurements.data}
-              initialDate={formSeed.date}
-            />
-          </div>
+          <div className="grid gap-6 lg:grid-cols-2 lg:items-start">
+            <div ref={formRef} className="scroll-mt-4">
+              <MeasurementForm
+                key={`${formSeed.date}-${formSeed.version}`}
+                measurements={measurements.data}
+                initialDate={formSeed.date}
+              />
+            </div>
 
-          {first && last && weights.length >= 2 && (
-            <section className="space-y-2">
-              <div className="flex items-baseline justify-between gap-2">
-                <h2 className="font-heading text-lg font-medium">Evolución del peso</h2>
-                <span className="text-muted-foreground text-sm tabular-nums">
-                  {formatKg(last.weightKg)} ·{' '}
-                  {formatSignedKg(Math.round((last.weightKg - first.weightKg) * 100) / 100)} en total
-                </span>
-              </div>
-              <Suspense fallback={<div className="bg-muted h-48 animate-pulse rounded-xl" />}>
-                <WeightChart points={weights} />
-              </Suspense>
-            </section>
-          )}
+            {first && last && weights.length >= 2 && (
+              <section className="space-y-2">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h2 className="font-heading text-lg font-medium">Evolución del peso</h2>
+                  <span className="text-muted-foreground text-sm tabular-nums">
+                    {formatKg(last.weightKg)} ·{' '}
+                    {formatSignedKg(Math.round((last.weightKg - first.weightKg) * 100) / 100)} en total
+                  </span>
+                </div>
+                <Suspense fallback={<div className="bg-muted h-48 animate-pulse rounded-xl" />}>
+                  <WeightChart points={weights} />
+                </Suspense>
+              </section>
+            )}
+          </div>
 
           <section className="space-y-3">
             <h2 className="font-heading text-lg font-medium">Historial</h2>
