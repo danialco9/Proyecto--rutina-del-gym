@@ -1,20 +1,68 @@
 # Gym Tracker
 
+[![Backend CI](https://github.com/danialco9/Proyecto--rutina-del-gym/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/danialco9/Proyecto--rutina-del-gym/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/danialco9/Proyecto--rutina-del-gym/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/danialco9/Proyecto--rutina-del-gym/actions/workflows/frontend-ci.yml)
+
 Web app to log gym workouts, track body measurements and use data analysis to decide when to
 change routines, exercises or intensity.
 
-> Personal project and portfolio piece. Single user for now, designed to grow into multi-user.
+**[Live demo](https://gym-tracker-two-beta.vercel.app)** — press *Probar la demo* to sign in to an
+account with 12 weeks of simulated training. No sign-up needed.
+
+> Personal project and portfolio piece. The interface is in Spanish; the code, commits and docs are
+> in English. Single user for now, designed to grow into multi-user.
+
+## What it does
+
+- **Live workout logging.** Mobile-first screen built for the gym floor: big `±2.5 kg` / `±1 rep`
+  buttons, the previous performance of each exercise in view, a rest timer, and a draft kept in
+  `localStorage` so a lost connection or a locked phone never loses a set.
+- **Routines with per-set targets.** Each exercise carries ordered set rows (reps, weight, optional
+  RPE), so pyramids and ramps are described exactly and prefill the next workout. Drag to reorder,
+  with keyboard support.
+- **Body measurements.** Quick weight entry plus an optional full set of measurements, with history
+  and a weight trend chart.
+- **Progress dashboard.** Estimated 1RM per exercise, weekly hard sets by muscle group, personal
+  records and body weight trend.
+- **Training recommendations.** The analytics engine compares the sets you actually did against the
+  ones the routine planned: everything hit at RPE ≤ 8 suggests `+2.5 kg` on every planned set
+  (keeping the pyramid shape), missed reps suggest holding, and a detected plateau suggests a deload.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U["📱 Browser<br/>React SPA"]
+    subgraph edge["Static hosting"]
+        V["Vercel / nginx<br/>serves the SPA<br/>rewrites /api"]
+    end
+    subgraph api["FastAPI service"]
+        R["REST API<br/>cookie JWT auth<br/>rate limiting"]
+        A["Analytics engine<br/>pandas + NumPy<br/>e1RM · volume · plateaus"]
+    end
+    DB[("PostgreSQL<br/>SQLAlchemy + Alembic")]
+
+    U -->|HTTPS| V
+    V -->|"/api/*"| R
+    R --> A
+    A --> DB
+    R --> DB
+```
+
+The SPA and the API are served from the same origin on purpose: the session JWT travels in an
+`HttpOnly`, `Secure`, `SameSite=Lax` cookie, which a cross-site frontend could not send. In
+production Vercel rewrites `/api` to the Render service; in Docker Compose nginx does the same.
 
 ## Stack
 
 | Area | Technology |
 | --- | --- |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, React Router, Recharts |
-| Backend | Python 3.12, FastAPI, SQLAlchemy, Alembic, Pydantic |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, React Router, Recharts |
+| Backend | Python 3.12, FastAPI, SQLAlchemy 2.0 (typed), Alembic, Pydantic |
 | Data analysis | pandas, NumPy (scikit-learn planned) |
-| Database | PostgreSQL 18 (Docker) |
+| Database | PostgreSQL 18 |
 | Tooling | uv, Ruff, mypy, pytest · pnpm, oxlint, Prettier, Vitest |
-| CI | GitHub Actions |
+| CI/CD | GitHub Actions · Vercel (web) · Render (API, Docker) · Neon (database) |
 
 ## Repository layout
 
@@ -64,6 +112,31 @@ pnpm install
 pnpm dev                      # http://localhost:5173
 ```
 
+### Checks
+
+```bash
+cd backend  && uv run ruff check . && uv run mypy . && uv run pytest
+cd frontend && pnpm lint && pnpm test && pnpm build
+```
+
+Backend tests run against a real PostgreSQL started with testcontainers, so migrations and queries
+are exercised the same way they run in production.
+
+## Engineering notes
+
+A few decisions worth calling out:
+
+- **Auth.** Passwords hashed with Argon2; the session JWT is stored in an `HttpOnly` cookie instead
+  of `localStorage`, so a XSS bug cannot read it. Login and registration are rate limited
+  (moving window, `429` with `Retry-After`).
+- **Schema migrations.** Alembic runs on container start, so a fresh database and a deployed one
+  follow exactly the same path.
+- **Analytics.** Estimated 1RM (Epley), weekly hard sets per muscle group and plateau detection live
+  in a pure module fed either from the CSV log or from PostgreSQL, which keeps it testable without a
+  web request.
+- **Typing and linting everywhere.** `mypy` on the backend and TypeScript `strict` on the frontend,
+  both enforced in CI alongside the tests.
+
 ## Roadmap
 
 - [x] Interim CSV training log and analytics engine (e1RM, PRs, weekly volume, weight trend, plateaus, progression)
@@ -78,4 +151,7 @@ pnpm dev                      # http://localhost:5173
 - [x] Frontend: progress dashboard (recommendations, per-exercise charts, weekly volume, body weight)
 - [x] Rate limiting on login and registration
 - [x] Deployment setup: Vercel + Render (Docker) + Neon, public demo with nightly reset ([guide](docs/deployment.md))
-- [ ] Smarter recommendations, offline PWA, natural-language workout logging
+- [x] One-command local stack with Docker Compose
+- [ ] Screenshots in this README
+- [ ] Natural-language workout logging with the Claude API
+- [ ] Smarter recommendations and offline PWA
