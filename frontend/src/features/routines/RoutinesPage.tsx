@@ -1,5 +1,6 @@
 import { ChevronRightIcon, PlusIcon } from 'lucide-react'
 import { Link } from 'react-router'
+import { PageHeader } from '@/components/PageHeader'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { buttonVariants } from '@/components/ui/button'
 import { useRoutines } from '@/features/workout/queries'
@@ -24,18 +25,17 @@ export function RoutinesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-semibold">Rutinas</h1>
-          <p className="text-muted-foreground text-sm">
-            Plantillas para empezar cada entreno con todo preparado.
-          </p>
-        </div>
-        <Link to="/rutinas/nueva" className={cn(buttonVariants(), 'h-10 shrink-0')}>
-          <PlusIcon />
-          Nueva rutina
-        </Link>
-      </header>
+      <PageHeader
+        eyebrow="Plantillas"
+        title="Rutinas"
+        description="Plantillas para empezar cada entreno con todo preparado."
+        action={
+          <Link to="/rutinas/nueva" className={cn(buttonVariants(), 'h-10 shrink-0')}>
+            <PlusIcon />
+            Nueva rutina
+          </Link>
+        }
+      />
 
       {routines.isPending && <p className="text-muted-foreground text-sm">Cargando rutinas…</p>}
       {routines.isError && (
@@ -49,12 +49,12 @@ export function RoutinesPage() {
         </p>
       )}
 
-      <ul className="space-y-2">
+      <ul className="grid gap-3 lg:grid-cols-2">
         {routines.data?.map((routine) => (
           <li key={routine.id}>
             <Link
               to={`/rutinas/${routine.id}`}
-              className="bg-card hover:bg-muted flex items-center justify-between gap-3 rounded-xl border p-4 transition-colors"
+              className="bg-card ring-foreground/10 hover:bg-accent flex h-full items-center justify-between gap-3 rounded-xl p-4 ring-1 transition-colors"
             >
               <span className="min-w-0">
                 <span className="block font-medium">{routine.name}</span>

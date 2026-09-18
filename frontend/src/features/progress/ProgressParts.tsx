@@ -2,10 +2,10 @@ import type { ReactNode } from 'react'
 
 export function StatTile({ label, value, detail }: { label: string; value: string; detail?: string }) {
   return (
-    <div className="bg-card min-w-0 rounded-xl border p-3">
-      <p className="text-muted-foreground truncate text-xs">{label}</p>
-      <p className="font-heading truncate text-xl font-semibold">{value}</p>
-      {detail && <p className="text-muted-foreground truncate text-xs">{detail}</p>}
+    <div className="bg-card ring-foreground/10 min-w-0 rounded-xl p-4 ring-1">
+      <p className="eyebrow truncate">{label}</p>
+      <p className="stat-number mt-2.5 truncate text-2xl">{value}</p>
+      {detail && <p className="text-muted-foreground mt-1 truncate text-xs">{detail}</p>}
     </div>
   )
 }
