@@ -1,5 +1,5 @@
 import { PlusIcon } from 'lucide-react'
-import { useState, type Dispatch } from 'react'
+import { useRef, useState, type Dispatch } from 'react'
 import { useNavigate } from 'react-router'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -23,10 +23,20 @@ interface ActiveWorkoutProps {
 
 export function ActiveWorkout({ draft, dispatch }: ActiveWorkoutProps) {
   const [pickerOpen, setPickerOpen] = useState(false)
+  const cardRefs = useRef(new Map<string, HTMLDivElement>())
   const timer = useRestTimer()
   const saveWorkout = useSaveWorkout()
   const navigate = useNavigate()
   const completed = completedSetCount(draft)
+
+  // Finishing an exercise brings the next one into view with its first set already open.
+  const scrollToNextExercise = (entryId: string) => {
+    const index = draft.exercises.findIndex((entry) => entry.id === entryId)
+    const next = draft.exercises[index + 1]
+    if (next !== undefined) {
+      cardRefs.current.get(next.id)?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    }
+  }
 
   const finish = () => {
     saveWorkout.mutate(toWorkoutPayload(draft, new Date().toISOString()), {
@@ -80,7 +90,25 @@ export function ActiveWorkout({ draft, dispatch }: ActiveWorkoutProps) {
       )}
 
       {draft.exercises.map((entry) => (
-        <ExerciseCard key={entry.id} entry={entry} dispatch={dispatch} onSetCompleted={() => timer.start()} />
+        <div
+          key={entry.id}
+          // Clears the sticky session bar when an exercise is scrolled to.
+          className="scroll-mt-24"
+          ref={(node) => {
+            if (node === null) {
+              cardRefs.current.delete(entry.id)
+            } else {
+              cardRefs.current.set(entry.id, node)
+            }
+          }}
+        >
+          <ExerciseCard
+            entry={entry}
+            dispatch={dispatch}
+            onSetCompleted={() => timer.start()}
+            onExerciseCompleted={() => scrollToNextExercise(entry.id)}
+          />
+        </div>
       ))}
 
       <Button

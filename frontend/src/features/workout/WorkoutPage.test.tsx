@@ -71,6 +71,41 @@ describe('WorkoutPage', () => {
     expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBeNull()
   })
 
+  it('opens one set at a time and lets the previous one be corrected', async () => {
+    mockApi({
+      'GET /auth/me': { body: USER },
+      'GET /routines': { body: [] },
+      'GET /exercises': { body: [LEG_PRESS, BENCH_PRESS] },
+      'GET /exercises/5/last-session': { body: null },
+    })
+    const { user } = renderRoute('/entrenar')
+
+    await user.click(await screen.findByRole('button', { name: /Entreno libre/ }))
+    await user.click(screen.getByRole('button', { name: /Añadir ejercicio/ }))
+    await user.type(await screen.findByRole('searchbox', { name: 'Buscar ejercicio' }), 'prensa')
+    await user.click(screen.getByRole('button', { name: /Prensa de piernas/ }))
+    await user.click(await screen.findByRole('button', { name: /Añadir serie/ }))
+
+    // Only the first set has controls; the second one waits its turn.
+    expect(screen.getByRole('button', { name: 'Completar serie 1' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Completar serie 2' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Corregir la serie anterior' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'RPE 8' }))
+    await user.click(screen.getByRole('button', { name: 'Completar serie 1' }))
+
+    // Set 1 collapses to a summary line and set 2 takes over.
+    expect(screen.getByRole('button', { name: 'Completar serie 2' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Corregir serie 1: 0 kg por 10 repeticiones' }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Corregir la serie anterior' }))
+
+    expect(screen.getByRole('button', { name: 'Completar serie 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'RPE 8' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('restores the draft saved on this device', async () => {
     const draft: WorkoutDraft = {
       routineId: null,
