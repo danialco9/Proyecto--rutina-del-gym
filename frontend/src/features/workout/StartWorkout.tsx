@@ -5,13 +5,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { plural } from '@/lib/format'
 import type { Routine } from '@/lib/types'
+import { DictateWorkout } from './DictateWorkout'
+import type { DictatedEntry } from './draft'
 import { useRoutines } from './queries'
 
 interface StartWorkoutProps {
   onStart: (routine?: Routine) => void
+  onStartDictated: (entries: DictatedEntry[]) => void
 }
 
-export function StartWorkout({ onStart }: StartWorkoutProps) {
+export function StartWorkout({ onStart, onStartDictated }: StartWorkoutProps) {
   const routines = useRoutines()
 
   return (
@@ -26,6 +29,8 @@ export function StartWorkout({ onStart }: StartWorkoutProps) {
         <PlusIcon />
         Entreno libre
       </Button>
+
+      <DictateWorkout onStart={onStartDictated} />
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">

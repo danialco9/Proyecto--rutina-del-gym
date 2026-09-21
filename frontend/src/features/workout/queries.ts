@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressKeys } from '@/features/progress/queries'
 import { apiFetch } from '@/lib/api'
-import type { Exercise, LastSession, Routine, Workout, WorkoutIn } from '@/lib/types'
+import type { Dictation, Exercise, LastSession, Routine, Workout, WorkoutIn } from '@/lib/types'
 
 export const queryKeys = {
   exercises: ['exercises'] as const,
@@ -52,5 +52,12 @@ export function useSaveWorkout() {
         queryClient.invalidateQueries({ queryKey: queryKeys.exercises }),
         queryClient.invalidateQueries({ queryKey: progressKeys.all }),
       ]),
+  })
+}
+
+/** Reads a workout written in plain text. Saves nothing: the result prefills the draft. */
+export function useReadDictation() {
+  return useMutation({
+    mutationFn: (text: string) => apiFetch<Dictation>('/dictation', { method: 'POST', body: { text } }),
   })
 }

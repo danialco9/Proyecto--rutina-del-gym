@@ -193,3 +193,24 @@ export interface ExerciseProgress {
   exercise_name: string
   sessions: ExerciseSession[]
 }
+
+/** A workout read from plain text. Nothing is saved: the app prefills the workout screen with it. */
+export interface DictationSet {
+  reps: number | null
+  weight_kg: number | null
+  rpe: number | null
+}
+
+export interface DictationExercise {
+  query: string
+  name: string
+  /** Null when the text did not settle on one exercise: the user picks it. */
+  exercise_id: number | null
+  sets: DictationSet[]
+  /** Closest catalog entries, offered when there is no confident match. */
+  suggestions: { id: number; name: string }[]
+}
+
+export interface Dictation {
+  exercises: DictationExercise[]
+}

@@ -20,6 +20,8 @@ LOGIN_PER_CLIENT_AND_EMAIL = parse("5/minute")
 LOGIN_PER_EMAIL = parse("20/hour")
 REGISTER_PER_CLIENT = parse("5/hour")
 DEMO_PER_CLIENT = parse("20/hour")
+# Reading a dictation is local and cheap today, but a language model behind it would not be.
+DICTATION_PER_CLIENT = parse("60/hour")
 
 
 @dataclass(frozen=True)

@@ -9,6 +9,9 @@ export function WorkoutPage() {
     return (
       <StartWorkout
         onStart={(routine) => dispatch({ type: 'start', startedAt: new Date().toISOString(), routine })}
+        onStartDictated={(entries) =>
+          dispatch({ type: 'startDictated', startedAt: new Date().toISOString(), entries })
+        }
       />
     )
   }

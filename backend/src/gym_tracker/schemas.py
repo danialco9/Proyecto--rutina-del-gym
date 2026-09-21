@@ -134,6 +134,41 @@ class RoutineRead(ORMModel):
     exercises: list[RoutineExerciseRead]
 
 
+# Dictation
+
+
+class DictationIn(InputModel):
+    text: str = Field(min_length=1, max_length=2000)
+
+
+class DictationSetRead(BaseModel):
+    """A set as it was read. Anything the text did not say comes back as null, to fill in by hand."""
+
+    reps: int | None
+    weight_kg: float | None
+    rpe: float | None
+
+
+class DictationSuggestion(BaseModel):
+    id: int
+    name: str
+
+
+class DictationExerciseRead(BaseModel):
+    """``exercise_id`` is null when the text did not settle on one exercise: the user picks it."""
+
+    query: str
+    name: str
+    exercise_id: int | None
+    sets: list[DictationSetRead]
+    # The closest catalog entries, offered when there is no confident match.
+    suggestions: list[DictationSuggestion] = []
+
+
+class DictationRead(BaseModel):
+    exercises: list[DictationExerciseRead]
+
+
 # Workouts
 
 
