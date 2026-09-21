@@ -108,7 +108,7 @@ export function MeasurementForm({ measurements, initialDate }: MeasurementFormPr
         {editing && <span className="text-muted-foreground text-sm">Ya registraste este día</span>}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <FormField
           id={`${baseId}-date`}
           label="Fecha"

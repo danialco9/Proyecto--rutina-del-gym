@@ -19,13 +19,14 @@ import {
   type RoutineFormValues,
 } from './routine-form'
 
+// `label` names the field for screen readers; `column` is the narrow heading a phone has room for.
 const SET_FIELDS = [
-  { key: 'targetReps', label: 'Reps', inputMode: 'numeric', placeholder: '10' },
-  { key: 'targetWeightKg', label: 'Peso (kg)', inputMode: 'decimal', placeholder: '60' },
-  { key: 'targetRpe', label: 'RPE', inputMode: 'decimal', placeholder: '8' },
+  { key: 'targetReps', label: 'Reps', column: 'Reps', inputMode: 'numeric', placeholder: '10' },
+  { key: 'targetWeightKg', label: 'Peso (kg)', column: 'Peso', inputMode: 'decimal', placeholder: '60' },
+  { key: 'targetRpe', label: 'RPE', column: 'RPE', inputMode: 'decimal', placeholder: '8' },
 ] as const
 
-const GRID = 'grid grid-cols-[2rem_1fr_1fr_1fr_2.25rem] items-center gap-2'
+const GRID = 'grid grid-cols-[1.75rem_1fr_1fr_1fr_2.25rem] items-center gap-1.5 sm:gap-2'
 
 interface RoutineExerciseFieldsProps {
   /** Stable id from the field array, used by the drag-and-drop list. */
@@ -97,9 +98,9 @@ export function RoutineExerciseFields({
         <div className="space-y-2">
           <div className={cn(GRID, 'text-muted-foreground text-xs')} aria-hidden>
             <span className="text-center">Serie</span>
-            {SET_FIELDS.map(({ key, label }) => (
+            {SET_FIELDS.map(({ key, column }) => (
               <span key={key} className="text-center">
-                {label}
+                {column}
               </span>
             ))}
           </div>

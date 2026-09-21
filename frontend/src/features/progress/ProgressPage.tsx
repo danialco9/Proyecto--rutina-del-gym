@@ -45,7 +45,7 @@ export function ProgressPage() {
 
       {overview.data && (
         <>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
             <StatTile
               label="Últimos 7 días"
               value={String(overview.data.activity.workouts_last_7_days)}
@@ -57,6 +57,7 @@ export function ProgressPage() {
               detail="entrenos"
             />
             <StatTile
+              className="col-span-2 sm:col-span-1"
               label="Último entreno"
               value={
                 overview.data.activity.last_workout_on === null

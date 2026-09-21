@@ -30,7 +30,10 @@ export function RoutinesPage() {
         title="Rutinas"
         description="Plantillas para empezar cada entreno con todo preparado."
         action={
-          <Link to="/rutinas/nueva" className={cn(buttonVariants(), 'h-10 shrink-0')}>
+          <Link
+            to="/rutinas/nueva"
+            className={cn(buttonVariants(), 'h-11 w-full shrink-0 sm:h-10 sm:w-auto')}
+          >
             <PlusIcon />
             Nueva rutina
           </Link>
@@ -51,7 +54,7 @@ export function RoutinesPage() {
 
       <ul className="grid gap-3 lg:grid-cols-2">
         {routines.data?.map((routine) => (
-          <li key={routine.id}>
+          <li key={routine.id} className="min-w-0">
             <Link
               to={`/rutinas/${routine.id}`}
               className="bg-card ring-foreground/10 hover:bg-accent flex h-full items-center justify-between gap-3 rounded-xl p-4 ring-1 transition-colors"

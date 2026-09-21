@@ -51,19 +51,19 @@ export function StartWorkout({ onStart }: StartWorkoutProps) {
         )}
         <ul className="grid gap-3 lg:grid-cols-2">
           {routines.data?.map((routine) => (
-            <li key={routine.id}>
+            <li key={routine.id} className="min-w-0">
               <button
                 type="button"
                 onClick={() => onStart(routine)}
                 className="bg-card ring-foreground/10 hover:bg-accent hover:ring-primary/40 flex h-full w-full items-center justify-between rounded-xl p-4 text-left ring-1 transition-colors"
               >
-                <span>
-                  <span className="block font-medium">{routine.name}</span>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{routine.name}</span>
                   <span className="text-muted-foreground text-sm">
                     {routine.exercises.length} {plural(routine.exercises.length, 'ejercicio', 'ejercicios')}
                   </span>
                 </span>
-                <ChevronRightIcon className="text-muted-foreground size-5" aria-hidden />
+                <ChevronRightIcon className="text-muted-foreground size-5 shrink-0" aria-hidden />
               </button>
             </li>
           ))}

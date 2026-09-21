@@ -25,7 +25,7 @@ export function BodyWeightTab({ bodyWeight }: { bodyWeight: ProgressOverview['bo
   }
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <StatTile
           label="Último pesaje"
           value={formatKg(latest.weight_kg)}
@@ -33,6 +33,7 @@ export function BodyWeightTab({ bodyWeight }: { bodyWeight: ProgressOverview['bo
         />
         <StatTile label="Media 7 días" value={formatKg(latest.trend_kg)} />
         <StatTile
+          className="col-span-2 sm:col-span-1"
           label="Tendencia"
           value={weeklyChange === null ? '—' : formatSignedKg(weeklyChange)}
           detail="por semana (4 sem.)"

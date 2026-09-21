@@ -1,11 +1,20 @@
 import type { ReactNode } from 'react'
+import { cn } from '@/lib/utils'
 
-export function StatTile({ label, value, detail }: { label: string; value: string; detail?: string }) {
+interface StatTileProps {
+  label: string
+  value: string
+  detail?: string
+  className?: string
+}
+
+/** Label and figure wrap rather than truncate: on a phone the tile is barely wider than the text. */
+export function StatTile({ label, value, detail, className }: StatTileProps) {
   return (
-    <div className="bg-card ring-foreground/10 min-w-0 rounded-xl p-4 ring-1">
-      <p className="eyebrow truncate">{label}</p>
-      <p className="stat-number mt-2.5 truncate text-2xl">{value}</p>
-      {detail && <p className="text-muted-foreground mt-1 truncate text-xs">{detail}</p>}
+    <div className={cn('bg-card ring-foreground/10 min-w-0 rounded-xl p-3 ring-1 sm:p-4', className)}>
+      <p className="eyebrow">{label}</p>
+      <p className="stat-number mt-2 text-xl sm:mt-2.5 sm:text-2xl">{value}</p>
+      {detail && <p className="text-muted-foreground mt-1 text-xs">{detail}</p>}
     </div>
   )
 }
