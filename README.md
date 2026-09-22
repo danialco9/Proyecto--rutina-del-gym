@@ -26,6 +26,9 @@ account with 12 weeks of simulated training. No sign-up needed.
   review. Where the text genuinely fits more than one exercise - `press banca` is both the barbell
   and the dumbbell entry - it offers the candidates instead of guessing, since the wrong one
   quietly spoils the history.
+- **Installable on the phone.** A PWA: added to the home screen it opens standalone, and the app
+  shell is precached by a service worker, so it starts with no connection at all. The API is never
+  cached — a stale workout is worse than an honest error — so the screens say when they are offline.
 - **Body measurements.** Quick weight entry plus an optional full set of measurements, with history
   and a weight trend chart.
 - **Progress dashboard.** Estimated 1RM per exercise, weekly hard sets by muscle group, personal
@@ -63,7 +66,7 @@ production Vercel rewrites `/api` to the Render service; in Docker Compose nginx
 
 | Area | Technology |
 | --- | --- |
-| Frontend | React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, React Router, Recharts |
+| Frontend | React 19, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, React Router, Recharts, vite-plugin-pwa |
 | Backend | Python 3.12, FastAPI, SQLAlchemy 2.0 (typed), Alembic, Pydantic |
 | Data analysis | pandas, NumPy (scikit-learn planned) |
 | Database | PostgreSQL 18 |
@@ -161,4 +164,6 @@ A few decisions worth calling out:
 - [ ] Screenshots in this README
 - [x] Workout logging in plain language (rule-based reader, with the seam a language model plugs into)
 - [ ] Language-model reading for the sentences the rules cannot reach
-- [ ] Smarter recommendations and offline PWA
+- [x] Installable PWA: standalone on the home screen, app shell precached, offline notice
+- [ ] Offline workout saving with a queue that syncs when the connection returns
+- [ ] Smarter recommendations
