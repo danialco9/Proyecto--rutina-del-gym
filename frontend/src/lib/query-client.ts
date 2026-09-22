@@ -1,6 +1,6 @@
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 import { ApiError } from './api'
-import { currentUserQueryKey } from './session'
+import { currentUserQueryKey, saveCachedUser } from './session'
 
 const MAX_RETRIES = 2
 
@@ -11,6 +11,7 @@ const MAX_RETRIES = 2
  */
 function endExpiredSession(queryClient: QueryClient, error: Error): void {
   if (error instanceof ApiError && error.status === 401 && queryClient.getQueryData(currentUserQueryKey)) {
+    saveCachedUser(null)
     queryClient.setQueryData(currentUserQueryKey, null)
   }
 }

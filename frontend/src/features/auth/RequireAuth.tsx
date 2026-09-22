@@ -1,4 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
+import { useOnline } from '@/lib/online'
 import { useCurrentUser } from './queries'
 
 function FullPageMessage({ children }: { children: string }) {
@@ -12,12 +13,21 @@ function FullPageMessage({ children }: { children: string }) {
 /** Renders the child routes only for a signed-in user; otherwise redirects to the login page. */
 export function RequireAuth() {
   const currentUser = useCurrentUser()
+  const online = useOnline()
   const location = useLocation()
 
   if (currentUser.isPending) {
     return <FullPageMessage>Cargando…</FullPageMessage>
   }
   if (currentUser.isError) {
+    // Offline with nothing cached: the device, not the server, is what failed. Say which.
+    if (!online) {
+      return (
+        <FullPageMessage>
+          Sin conexión. Conéctate una vez para entrar; después la app abre sin cobertura.
+        </FullPageMessage>
+      )
+    }
     return (
       <FullPageMessage>No se pudo conectar con el servidor. Inténtalo de nuevo más tarde.</FullPageMessage>
     )

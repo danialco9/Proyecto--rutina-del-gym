@@ -1,26 +1,9 @@
 import { WifiOffIcon } from 'lucide-react'
-import { useSyncExternalStore } from 'react'
-
-function subscribe(onChange: () => void) {
-  window.addEventListener('online', onChange)
-  window.addEventListener('offline', onChange)
-  return () => {
-    window.removeEventListener('online', onChange)
-    window.removeEventListener('offline', onChange)
-  }
-}
-
-function useOnline() {
-  return useSyncExternalStore(
-    subscribe,
-    () => window.navigator.onLine,
-    () => true,
-  )
-}
+import { useOnline } from '@/lib/online'
 
 /**
- * Installed on a phone, the app opens with no connection at all, so it has to say so: the workout
- * draft survives in `localStorage`, but saving it — and every other screen — needs the API.
+ * Installed on a phone, the app opens with no connection at all, so it has to say so: a workout can
+ * go on being written down, but anything that talks to the server has to wait.
  */
 export function OfflineNotice() {
   const online = useOnline()

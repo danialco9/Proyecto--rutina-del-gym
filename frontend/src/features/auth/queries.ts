@@ -1,21 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '@/lib/api'
+import { isOnline } from '@/lib/online'
 import type { User } from '@/lib/types'
-import { currentUserQueryKey } from '@/lib/session'
+import { currentUserQueryKey, loadCachedUser, saveCachedUser } from '@/lib/session'
 import type { LoginInput } from './schema'
 
 export { currentUserQueryKey }
 
-/** The signed-in user, or `null` when there is no valid session cookie. */
+/**
+ * The signed-in user, or `null` when there is no valid session cookie.
+ *
+ * With no connection the question cannot be asked, so the last confirmed user stands in for the
+ * answer: otherwise the app installed on a phone could only ever show its login page in the gym,
+ * which is exactly where the connection fails. The stand-in lasts only as long as the outage.
+ */
 export function useCurrentUser() {
   return useQuery({
     queryKey: currentUserQueryKey,
     queryFn: async ({ signal }) => {
       try {
-        return await apiFetch<User>('/auth/me', { signal })
+        const user = await apiFetch<User>('/auth/me', { signal })
+        saveCachedUser(user)
+        return user
       } catch (error) {
         if (error instanceof ApiError && error.status === 401) {
+          saveCachedUser(null)
           return null
+        }
+        const cachedUser = loadCachedUser()
+        if (!isOnline() && cachedUser !== null) {
+          return cachedUser
         }
         throw error
       }
@@ -29,7 +43,10 @@ export function useRegister() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (account: LoginInput) => apiFetch<User>('/auth/register', { method: 'POST', body: account }),
-    onSuccess: (user) => queryClient.setQueryData(currentUserQueryKey, user),
+    onSuccess: (user) => {
+      saveCachedUser(user)
+      queryClient.setQueryData(currentUserQueryKey, user)
+    },
   })
 }
 
@@ -55,6 +72,7 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => apiFetch<void>('/auth/logout', { method: 'POST' }),
     onSuccess: () => {
+      saveCachedUser(null)
       queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
       queryClient.setQueryData(currentUserQueryKey, null)
     },

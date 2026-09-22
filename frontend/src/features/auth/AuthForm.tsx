@@ -1,5 +1,6 @@
 import type { ComponentProps, ReactNode } from 'react'
 import authImage from '@/assets/hero-rack.webp'
+import { OfflineNotice } from '@/components/OfflineNotice'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -30,8 +31,9 @@ export function AuthShell({ title, description, children, footer }: AuthShellPro
         </div>
       </section>
 
-      <section className="flex items-center justify-center px-4 py-10">
-        <Card className="w-full max-w-sm">
+      <section className="flex flex-col items-center justify-center px-4 py-10">
+        <OfflineNotice />
+        <Card className="mt-4 w-full max-w-sm">
           <CardHeader>
             <h1 className="font-heading text-xl font-semibold">{title}</h1>
             <CardDescription>{description}</CardDescription>
