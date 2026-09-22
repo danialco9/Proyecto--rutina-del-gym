@@ -7,6 +7,7 @@ import {
   ScaleIcon,
 } from 'lucide-react'
 import { NavLink, Outlet, useNavigate } from 'react-router'
+import { OfflineNotice } from '@/components/OfflineNotice'
 import { Button } from '@/components/ui/button'
 import { useLogout } from '@/features/auth/queries'
 import { loadDraft, saveDraft } from '@/features/workout/draft'
@@ -92,6 +93,8 @@ export function AppLayout() {
             Salir
           </Button>
         </header>
+
+        <OfflineNotice />
 
         <main className="mx-auto w-full max-w-2xl flex-1 px-4 pt-4 pb-40 lg:max-w-6xl lg:px-8 lg:pt-8 lg:pb-16">
           <Outlet />
