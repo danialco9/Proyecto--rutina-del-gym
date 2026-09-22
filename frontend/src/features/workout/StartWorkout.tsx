@@ -5,13 +5,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { plural } from '@/lib/format'
 import type { Routine } from '@/lib/types'
+import { DictateWorkout } from './DictateWorkout'
+import type { DictatedEntry } from './draft'
 import { useRoutines } from './queries'
 
 interface StartWorkoutProps {
   onStart: (routine?: Routine) => void
+  onStartDictated: (entries: DictatedEntry[]) => void
 }
 
-export function StartWorkout({ onStart }: StartWorkoutProps) {
+export function StartWorkout({ onStart, onStartDictated }: StartWorkoutProps) {
   const routines = useRoutines()
 
   return (
@@ -26,6 +29,8 @@ export function StartWorkout({ onStart }: StartWorkoutProps) {
         <PlusIcon />
         Entreno libre
       </Button>
+
+      <DictateWorkout onStart={onStartDictated} />
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -51,19 +56,19 @@ export function StartWorkout({ onStart }: StartWorkoutProps) {
         )}
         <ul className="grid gap-3 lg:grid-cols-2">
           {routines.data?.map((routine) => (
-            <li key={routine.id}>
+            <li key={routine.id} className="min-w-0">
               <button
                 type="button"
                 onClick={() => onStart(routine)}
                 className="bg-card ring-foreground/10 hover:bg-accent hover:ring-primary/40 flex h-full w-full items-center justify-between rounded-xl p-4 text-left ring-1 transition-colors"
               >
-                <span>
-                  <span className="block font-medium">{routine.name}</span>
+                <span className="min-w-0">
+                  <span className="block truncate font-medium">{routine.name}</span>
                   <span className="text-muted-foreground text-sm">
                     {routine.exercises.length} {plural(routine.exercises.length, 'ejercicio', 'ejercicios')}
                   </span>
                 </span>
-                <ChevronRightIcon className="text-muted-foreground size-5" aria-hidden />
+                <ChevronRightIcon className="text-muted-foreground size-5 shrink-0" aria-hidden />
               </button>
             </li>
           ))}

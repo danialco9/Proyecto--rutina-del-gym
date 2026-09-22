@@ -27,11 +27,11 @@ export function Stepper({ label, value, step, inputMode, onAdjust, onChange }: S
       <Label htmlFor={id} className="text-muted-foreground text-xs">
         {label}
       </Label>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 sm:gap-1.5">
         <Button
           variant="outline"
           size="icon-lg"
-          className="size-11 shrink-0"
+          className="size-10 shrink-0 sm:size-11"
           aria-label={`Reducir ${lowerLabel}`}
           onClick={() => onAdjust(-step)}
         >
@@ -41,7 +41,7 @@ export function Stepper({ label, value, step, inputMode, onAdjust, onChange }: S
           id={id}
           inputMode={inputMode}
           value={text ?? toInputText(value)}
-          className="h-11 px-1 text-center text-base tabular-nums"
+          className="h-10 px-0.5 text-center text-base tabular-nums sm:h-11 sm:px-1"
           onFocus={(event) => {
             setText(toInputText(value))
             event.target.select()
@@ -58,7 +58,7 @@ export function Stepper({ label, value, step, inputMode, onAdjust, onChange }: S
         <Button
           variant="outline"
           size="icon-lg"
-          className="size-11 shrink-0"
+          className="size-10 shrink-0 sm:size-11"
           aria-label={`Aumentar ${lowerLabel}`}
           onClick={() => onAdjust(step)}
         >

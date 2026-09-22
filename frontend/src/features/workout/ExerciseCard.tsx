@@ -3,21 +3,35 @@ import type { Dispatch } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatSetPlan } from '@/lib/set-plan'
+import { ActiveSet } from './ActiveSet'
 import type { DraftAction, DraftExercise } from './draft'
 import { LastSessionHint } from './LastSessionHint'
-import { SetRow } from './SetRow'
+import { CompletedSetRow, PendingSetRow } from './SetSummary'
 
 interface ExerciseCardProps {
   entry: DraftExercise
   dispatch: Dispatch<DraftAction>
   onSetCompleted: () => void
+  onExerciseCompleted: () => void
 }
 
-export function ExerciseCard({ entry, dispatch, onSetCompleted }: ExerciseCardProps) {
+export function ExerciseCard({ entry, dispatch, onSetCompleted, onExerciseCompleted }: ExerciseCardProps) {
   const target = formatSetPlan(entry.targets)
+  // The set being logged is the first one not ticked off yet; the rest are summary lines.
+  const activeIndex = entry.sets.findIndex((set) => !set.done)
+  const toggleDone = (setId: string) => dispatch({ type: 'toggleDone', entryId: entry.id, setId })
+
+  const completeSet = (setId: string, index: number) => {
+    toggleDone(setId)
+    onSetCompleted()
+    // Nothing left to log here: move the workout on to the next exercise.
+    if (entry.sets.every((set, position) => set.done || position <= index)) {
+      onExerciseCompleted()
+    }
+  }
 
   return (
-    <Card size="sm">
+    <Card size="sm" className="[--card-spacing:--spacing(2)] sm:[--card-spacing:--spacing(3)]">
       <CardHeader>
         <CardTitle>{entry.name}</CardTitle>
         <CardDescription className="space-y-0.5">
@@ -35,28 +49,39 @@ export function ExerciseCard({ entry, dispatch, onSetCompleted }: ExerciseCardPr
           </Button>
         </CardAction>
       </CardHeader>
-      <CardContent className="space-y-2">
-        {entry.sets.map((set, index) => (
-          <SetRow
-            key={set.id}
-            number={index + 1}
-            set={set}
-            onAdjust={(field, delta) =>
-              dispatch({ type: 'adjustSet', entryId: entry.id, setId: set.id, field, delta })
-            }
-            onChange={(changes) => dispatch({ type: 'updateSet', entryId: entry.id, setId: set.id, changes })}
-            onToggleDone={() => {
-              if (!set.done) {
-                onSetCompleted()
+      <CardContent className="space-y-1">
+        {entry.sets.map((set, index) => {
+          const number = index + 1
+          if (set.done) {
+            return (
+              <CompletedSetRow key={set.id} number={number} set={set} onEdit={() => toggleDone(set.id)} />
+            )
+          }
+          if (index !== activeIndex) {
+            return <PendingSetRow key={set.id} number={number} set={set} />
+          }
+          const previousDone = entry.sets.slice(0, index).findLast((earlier) => earlier.done)
+          return (
+            <ActiveSet
+              key={set.id}
+              number={number}
+              set={set}
+              canGoBack={previousDone !== undefined}
+              onAdjust={(field, delta) =>
+                dispatch({ type: 'adjustSet', entryId: entry.id, setId: set.id, field, delta })
               }
-              dispatch({ type: 'toggleDone', entryId: entry.id, setId: set.id })
-            }}
-            onRemove={() => dispatch({ type: 'removeSet', entryId: entry.id, setId: set.id })}
-          />
-        ))}
+              onChange={(changes) =>
+                dispatch({ type: 'updateSet', entryId: entry.id, setId: set.id, changes })
+              }
+              onDone={() => completeSet(set.id, index)}
+              onBack={() => previousDone && toggleDone(previousDone.id)}
+              onRemove={() => dispatch({ type: 'removeSet', entryId: entry.id, setId: set.id })}
+            />
+          )
+        })}
         <Button
           variant="secondary"
-          className="h-10 w-full"
+          className="mt-1 h-10 w-full"
           onClick={() => dispatch({ type: 'addSet', entryId: entry.id })}
         >
           <PlusIcon />

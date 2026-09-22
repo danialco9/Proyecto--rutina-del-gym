@@ -192,7 +192,7 @@ export function HomePage() {
           {workouts.data?.map((workout) => (
             <li
               key={workout.id}
-              className="bg-card ring-foreground/10 flex items-center gap-3 rounded-xl p-4 ring-1"
+              className="bg-card ring-foreground/10 flex min-w-0 items-center gap-3 rounded-xl p-4 ring-1"
             >
               <span className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-lg">
                 <DumbbellIcon className="size-5" aria-hidden />

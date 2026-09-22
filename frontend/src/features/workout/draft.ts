@@ -46,8 +46,16 @@ export type WorkoutDraft = z.infer<typeof workoutDraftSchema>
 
 type SetChanges = Partial<Pick<DraftSet, 'reps' | 'weightKg' | 'rpe' | 'isWarmup'>>
 
+/** An exercise read from a dictation, already resolved to a catalog exercise. */
+export interface DictatedEntry {
+  exerciseId: number
+  name: string
+  sets: { reps: number | null; weightKg: number | null; rpe: number | null }[]
+}
+
 export type DraftAction =
   | { type: 'start'; startedAt: string; routine?: Routine }
+  | { type: 'startDictated'; startedAt: string; entries: DictatedEntry[] }
   | { type: 'addExercise'; exercise: Pick<Exercise, 'id' | 'name'> }
   | { type: 'removeExercise'; entryId: string }
   | { type: 'addSet'; entryId: string }
@@ -138,6 +146,24 @@ export function draftReducer(draft: WorkoutDraft | null, action: DraftAction): W
       startedAt: action.startedAt,
       notes: '',
       exercises: action.routine?.exercises.map(entryFromRoutine) ?? [],
+    }
+  }
+  if (action.type === 'startDictated') {
+    return {
+      routineId: null,
+      routineName: null,
+      startedAt: action.startedAt,
+      notes: '',
+      exercises: action.entries.map((entry) => ({
+        id: newId(),
+        exerciseId: entry.exerciseId,
+        name: entry.name,
+        targets: [],
+        // What the text did not say keeps the usual defaults, ready to adjust on the set itself.
+        sets: entry.sets.map((set) =>
+          newSet({ reps: set.reps ?? DEFAULT_REPS, weightKg: set.weightKg ?? 0, rpe: set.rpe }),
+        ),
+      })),
     }
   }
   if (action.type === 'discard' || draft === null) {

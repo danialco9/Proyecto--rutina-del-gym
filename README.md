@@ -20,6 +20,12 @@ account with 12 weeks of simulated training. No sign-up needed.
 - **Routines with per-set targets.** Each exercise carries ordered set rows (reps, weight, optional
   RPE), so pyramids and ramps are described exactly and prefill the next workout. Drag to reorder,
   with keyboard support.
+- **Logging a workout in plain language.** Type (or dictate with the phone keyboard) `prensa 4x10
+  120, press banca 12,10,8 a 60 rpe 8` and the server reads it into sets, matched against your
+  exercise catalog. It never saves on its own: the reading prefills the workout screen for you to
+  review. Where the text genuinely fits more than one exercise - `press banca` is both the barbell
+  and the dumbbell entry - it offers the candidates instead of guessing, since the wrong one
+  quietly spoils the history.
 - **Body measurements.** Quick weight entry plus an optional full set of measurements, with history
   and a weight trend chart.
 - **Progress dashboard.** Estimated 1RM per exercise, weekly hard sets by muscle group, personal
@@ -153,5 +159,6 @@ A few decisions worth calling out:
 - [x] Deployment setup: Vercel + Render (Docker) + Neon, public demo with nightly reset ([guide](docs/deployment.md))
 - [x] One-command local stack with Docker Compose
 - [ ] Screenshots in this README
-- [ ] Natural-language workout logging with the Claude API
+- [x] Workout logging in plain language (rule-based reader, with the seam a language model plugs into)
+- [ ] Language-model reading for the sentences the rules cannot reach
 - [ ] Smarter recommendations and offline PWA

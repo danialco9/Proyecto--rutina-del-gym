@@ -71,6 +71,92 @@ describe('WorkoutPage', () => {
     expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).toBeNull()
   })
 
+  it('starts a workout from a dictation, after the user resolves what was not recognised', async () => {
+    const calls = mockApi({
+      'GET /auth/me': { body: USER },
+      'GET /routines': { body: [] },
+      'GET /exercises': { body: [LEG_PRESS, BENCH_PRESS] },
+      'GET /exercises/5/last-session': { body: null },
+      'GET /exercises/6/last-session': { body: null },
+      'POST /dictation': {
+        body: {
+          exercises: [
+            {
+              query: 'prensa',
+              name: 'Prensa de piernas',
+              exercise_id: 5,
+              sets: [
+                { reps: 10, weight_kg: 120, rpe: null },
+                { reps: 10, weight_kg: 120, rpe: null },
+              ],
+              suggestions: [],
+            },
+            {
+              query: 'press banca',
+              name: 'press banca',
+              exercise_id: null,
+              sets: [{ reps: 8, weight_kg: null, rpe: 8 }],
+              suggestions: [{ id: 6, name: 'Press banca con barra' }],
+            },
+          ],
+        },
+      },
+    })
+    const { user } = renderRoute('/entrenar')
+
+    await user.type(await screen.findByLabelText('Tu entreno'), 'prensa 4x10 120, press banca 8 rpe 8')
+    await user.click(screen.getByRole('button', { name: 'Leer entreno' }))
+
+    // What it understood is shown for review; nothing has been saved.
+    expect(await screen.findByText('Prensa de piernas')).toBeInTheDocument()
+    expect(screen.getByText('2 series · 10 reps · 120 kg')).toBeInTheDocument()
+    expect(calls.some((call) => call.path === '/workouts')).toBe(false)
+
+    // "press banca" fits more than one catalog entry, so it is offered instead of guessed at.
+    await user.click(screen.getByRole('button', { name: 'Press banca con barra' }))
+
+    await user.click(screen.getByRole('button', { name: 'Empezar con 2 ejercicios' }))
+
+    // The workout opens prefilled: one open set per exercise, the rest waiting their turn.
+    expect(await screen.findByRole('heading', { name: 'Entreno libre' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button', { name: 'Completar serie 1' })).toHaveLength(2)
+  })
+
+  it('opens one set at a time and lets the previous one be corrected', async () => {
+    mockApi({
+      'GET /auth/me': { body: USER },
+      'GET /routines': { body: [] },
+      'GET /exercises': { body: [LEG_PRESS, BENCH_PRESS] },
+      'GET /exercises/5/last-session': { body: null },
+    })
+    const { user } = renderRoute('/entrenar')
+
+    await user.click(await screen.findByRole('button', { name: /Entreno libre/ }))
+    await user.click(screen.getByRole('button', { name: /Añadir ejercicio/ }))
+    await user.type(await screen.findByRole('searchbox', { name: 'Buscar ejercicio' }), 'prensa')
+    await user.click(screen.getByRole('button', { name: /Prensa de piernas/ }))
+    await user.click(await screen.findByRole('button', { name: /Añadir serie/ }))
+
+    // Only the first set has controls; the second one waits its turn.
+    expect(screen.getByRole('button', { name: 'Completar serie 1' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Completar serie 2' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Corregir la serie anterior' })).not.toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'RPE 8' }))
+    await user.click(screen.getByRole('button', { name: 'Completar serie 1' }))
+
+    // Set 1 collapses to a summary line and set 2 takes over.
+    expect(screen.getByRole('button', { name: 'Completar serie 2' })).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Corregir serie 1: 0 kg por 10 repeticiones' }),
+    ).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Corregir la serie anterior' }))
+
+    expect(screen.getByRole('button', { name: 'Completar serie 1' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'RPE 8' })).toHaveAttribute('aria-pressed', 'true')
+  })
+
   it('restores the draft saved on this device', async () => {
     const draft: WorkoutDraft = {
       routineId: null,

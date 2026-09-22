@@ -46,7 +46,7 @@ export function ExercisesTab({ records }: { records: PersonalRecord[] }) {
         </select>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         <StatTile
           label="Mejor e1RM"
           value={formatKg(record.best_e1rm_kg)}
@@ -58,6 +58,7 @@ export function ExercisesTab({ records }: { records: PersonalRecord[] }) {
           detail={formatDay(record.max_weight_on)}
         />
         <StatTile
+          className="col-span-2 sm:col-span-1"
           label="Sesiones"
           value={String(record.sessions)}
           detail={MUSCLE_GROUP_LABELS[record.muscle_group]}
