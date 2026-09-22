@@ -27,8 +27,10 @@ account with 12 weeks of simulated training. No sign-up needed.
   and the dumbbell entry - it offers the candidates instead of guessing, since the wrong one
   quietly spoils the history.
 - **Installable on the phone.** A PWA: added to the home screen it opens standalone, and the app
-  shell is precached by a service worker, so it starts with no connection at all. The API is never
-  cached — a stale workout is worse than an honest error — so the screens say when they are offline.
+  shell is precached by a service worker, so it starts with no connection at all. Once you have
+  signed in on that device it opens straight into the app offline, on the last session the server
+  confirmed, instead of a login page it cannot submit. The API itself is never cached — a stale
+  workout is worse than an honest error — so the screens say when they are offline.
 - **Body measurements.** Quick weight entry plus an optional full set of measurements, with history
   and a weight trend chart.
 - **Progress dashboard.** Estimated 1RM per exercise, weekly hard sets by muscle group, personal
@@ -164,6 +166,6 @@ A few decisions worth calling out:
 - [ ] Screenshots in this README
 - [x] Workout logging in plain language (rule-based reader, with the seam a language model plugs into)
 - [ ] Language-model reading for the sentences the rules cannot reach
-- [x] Installable PWA: standalone on the home screen, app shell precached, offline notice
+- [x] Installable PWA: standalone on the home screen, app shell precached, opens offline on the remembered session
 - [ ] Offline workout saving with a queue that syncs when the connection returns
 - [ ] Smarter recommendations
