@@ -156,6 +156,14 @@ describe('toWorkoutPayload', () => {
       [11, 3, 0],
     ])
   })
+
+  it('names the workout with the draft client id, the same however many times it is sent', () => {
+    const draft = start(legDay)
+
+    expect(draft.clientId).toMatch(/^[0-9a-f-]{36}$/)
+    expect(toWorkoutPayload(draft, ENDED_AT).client_id).toBe(draft.clientId)
+    expect(toWorkoutPayload(draft, ENDED_AT).client_id).not.toBe(start(legDay).clientId)
+  })
 })
 
 describe('draft storage', () => {
@@ -183,6 +191,13 @@ describe('draft storage', () => {
     window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(oldDraft))
 
     expect(loadDraft()?.exercises[0]).toEqual({ ...oldEntry, targets: [] })
+  })
+
+  it('gives a draft saved before the offline queue a client id of its own', () => {
+    const { clientId: _clientId, ...oldDraft } = start(legDay)
+    window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(oldDraft))
+
+    expect(loadDraft()?.clientId).toMatch(/^[0-9a-f-]{36}$/)
   })
 
   it('ignores corrupt or outdated data', () => {

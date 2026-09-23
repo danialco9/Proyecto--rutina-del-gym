@@ -159,6 +159,7 @@ describe('WorkoutPage', () => {
 
   it('restores the draft saved on this device', async () => {
     const draft: WorkoutDraft = {
+      clientId: 'draft-1',
       routineId: null,
       routineName: 'Pierna',
       startedAt: '2026-09-15T16:00:00.000Z',
@@ -177,6 +178,7 @@ describe('WorkoutPage', () => {
 
 function draftWithDoneSet(): WorkoutDraft {
   return {
+    clientId: '8f14e45f-ceea-467a-9575-0e1f3c9b7a01',
     routineId: null,
     routineName: null,
     startedAt: '2026-09-15T16:00:00.000Z',

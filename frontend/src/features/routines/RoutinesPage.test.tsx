@@ -57,6 +57,8 @@ async function addExercise(user: UserEvent, search: string, name: string) {
 }
 
 describe('Routines', () => {
+  // The longest flow in the suite (two exercises, a set plan each, a drag): about 5 s on a slow
+  // laptop, right at the default limit, so it gets room of its own.
   it('creates a routine with ordered exercises and a plan for each set', async () => {
     let routines: Routine[] = []
     const calls = mockApi({
@@ -121,7 +123,7 @@ describe('Routines', () => {
         { exercise_id: 5, sets: [emptySet, emptySet, emptySet] },
       ],
     })
-  })
+  }, 15_000)
 
   it('edits and deletes an existing routine', async () => {
     let routines: Routine[] = [legDay()]

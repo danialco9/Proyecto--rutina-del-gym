@@ -101,6 +101,7 @@ export interface Workout {
 export type WorkoutSetIn = Omit<WorkoutSet, 'id'>
 
 export interface WorkoutIn {
+  client_id: string | null
   routine_id: number | null
   started_at: string
   ended_at: string | null

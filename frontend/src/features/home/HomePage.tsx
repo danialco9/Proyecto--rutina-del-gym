@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { buttonVariants } from '@/components/ui/button'
 import { useProgressOverview } from '@/features/progress/queries'
 import { loadDraft } from '@/features/workout/draft'
+import { PendingWorkouts } from '@/features/workout/PendingWorkouts'
 import { useRecentWorkouts, useRoutines } from '@/features/workout/queries'
 import { formatDate, formatDecimal, formatDuration, formatSignedKg, plural } from '@/lib/format'
 import type { ProgressOverview, Workout } from '@/lib/types'
@@ -167,6 +168,8 @@ export function HomePage() {
           </Link>
         </div>
       </section>
+
+      <PendingWorkouts />
 
       {overview.data !== undefined && (
         <section className="space-y-3">

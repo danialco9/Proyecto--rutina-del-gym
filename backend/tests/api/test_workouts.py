@@ -1,10 +1,11 @@
 from datetime import datetime
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from gym_tracker.models import Routine
+from gym_tracker.models import Routine, Workout
 from gym_tracker.users import create_user
 from tests.api.conftest import catalog_exercise_id
 
@@ -68,6 +69,40 @@ def test_rejects_duplicate_set_numbers(auth_client: TestClient, session: Session
     payload = workout_payload(sets=[set_payload(squat, 1), set_payload(squat, 1)])
 
     assert auth_client.post("/api/workouts", json=payload).status_code == 422
+
+
+def test_sending_the_same_workout_again_does_not_save_it_twice(auth_client: TestClient, session: Session) -> None:
+    squat = catalog_exercise_id(session, "back-squat")
+    payload = workout_payload(client_id=str(uuid4()), sets=[set_payload(squat, 1), set_payload(squat, 2)])
+
+    first = auth_client.post("/api/workouts", json=payload)
+    # The phone lost the answer to the first request and retries from its queue.
+    again = auth_client.post("/api/workouts", json=payload)
+
+    assert first.status_code == 201
+    assert again.status_code == 200
+    assert again.json() == first.json()
+    assert [workout["id"] for workout in auth_client.get("/api/workouts").json()] == [first.json()["id"]]
+
+
+def test_client_ids_are_scoped_to_each_user(auth_client: TestClient, session: Session) -> None:
+    client_id = uuid4()
+    other = create_user(session, email="other@example.com", password="another-password")
+    session.add(Workout(user_id=other.id, client_id=client_id, started_at=datetime.fromisoformat(STARTED_AT)))
+    session.flush()
+
+    response = auth_client.post("/api/workouts", json=workout_payload(client_id=str(client_id)))
+
+    assert response.status_code == 201
+    saved = session.get(Workout, response.json()["id"])
+    assert saved is not None
+    assert saved.client_id == UUID(str(client_id))
+
+
+def test_workouts_without_client_id_are_always_new(auth_client: TestClient) -> None:
+    assert auth_client.post("/api/workouts", json=workout_payload()).status_code == 201
+    assert auth_client.post("/api/workouts", json=workout_payload()).status_code == 201
+    assert len(auth_client.get("/api/workouts").json()) == 2
 
 
 def test_list_is_newest_first_and_paginated(auth_client: TestClient) -> None:

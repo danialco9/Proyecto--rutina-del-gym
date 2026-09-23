@@ -3,7 +3,8 @@ import { useOnline } from '@/lib/online'
 
 /**
  * Installed on a phone, the app opens with no connection at all, so it has to say so: a workout can
- * go on being written down, but anything that talks to the server has to wait.
+ * go on being written down and is sent on its own later, but anything else that talks to the server
+ * has to wait.
  */
 export function OfflineNotice() {
   const online = useOnline()
@@ -15,7 +16,7 @@ export function OfflineNotice() {
       className="bg-muted text-muted-foreground flex items-center justify-center gap-2 px-4 py-2 text-center text-xs"
     >
       <WifiOffIcon className="size-4 shrink-0" aria-hidden />
-      Sin conexión. Lo que apuntes se queda en el móvil; podrás guardarlo cuando vuelva la cobertura.
+      Sin conexión. Lo que apuntes se queda en el móvil y se subirá solo cuando vuelva la cobertura.
     </p>
   )
 }

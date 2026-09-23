@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from typing import ClassVar, Self
+from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
@@ -182,6 +183,8 @@ class WorkoutSetIn(InputModel):
 
 
 class WorkoutIn(InputModel):
+    # Idempotency key: a workout posted again with the same one is not saved a second time.
+    client_id: UUID | None = None
     routine_id: int | None = None
     started_at: AwareDatetime
     ended_at: AwareDatetime | None = None
