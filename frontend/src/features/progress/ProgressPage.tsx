@@ -90,6 +90,7 @@ export function ProgressPage() {
               <RecommendationsTab
                 recommendations={overview.data.recommendations}
                 volumeAdvice={overview.data.volume_advice}
+                hasWorkouts={overview.data.activity.workouts_total > 0}
               />
             </TabsContent>
             <TabsContent value="ejercicios" className="pt-2">

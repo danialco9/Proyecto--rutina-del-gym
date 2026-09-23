@@ -233,6 +233,23 @@ describe('Progress', () => {
     )
   })
 
+  it('does not ask for a first workout after a break of more than four weeks', async () => {
+    mockApi({
+      'GET /auth/me': { body: USER },
+      'GET /progress/overview': {
+        body: {
+          ...OVERVIEW,
+          activity: { ...OVERVIEW.activity, workouts_last_7_days: 0, workouts_last_28_days: 0 },
+          recommendations: [],
+        } satisfies ProgressOverview,
+      },
+    })
+    renderRoute('/progreso')
+
+    expect(await screen.findByText(/No has entrenado en las últimas 4 semanas/)).toBeInTheDocument()
+    expect(screen.queryByText(/Registra tu primer entreno/)).not.toBeInTheDocument()
+  })
+
   it('summarizes the next session on the home page', async () => {
     mockApi({
       'GET /auth/me': { body: USER },

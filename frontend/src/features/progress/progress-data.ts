@@ -46,7 +46,7 @@ export function explainRecommendation(item: Recommendation): string {
     case 'targets_missed':
       return `${capitalize(shortfall(item))}: mantén el peso hasta completarlas.`
     case 'plateau':
-      return 'Tu mejor marca estimada no mejora en las últimas sesiones: baja un 10 % y vuelve a construir.'
+      return 'Tu mejor marca estimada no mejora en las últimas sesiones: baja el peso y vuelve a construir.'
     case 'easy_without_plan':
       return `Sin objetivo de repeticiones y${withRpe || ' sin esfuerzo alto'}: sube ${step}.`
     case 'without_plan':
