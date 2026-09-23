@@ -68,14 +68,18 @@ function VolumeSection({ advice }: { advice: VolumeAdvice[] }) {
 interface RecommendationsTabProps {
   recommendations: Recommendation[]
   volumeAdvice: VolumeAdvice[]
+  /** Whether any workout was ever logged: only the last four weeks get recommendations. */
+  hasWorkouts: boolean
 }
 
-export function RecommendationsTab({ recommendations, volumeAdvice }: RecommendationsTabProps) {
+export function RecommendationsTab({ recommendations, volumeAdvice, hasWorkouts }: RecommendationsTabProps) {
   return (
     <div className="space-y-4">
       {recommendations.length === 0 ? (
         <EmptyState>
-          Registra tu primer entreno para recibir recomendaciones para la próxima sesión.
+          {hasWorkouts
+            ? 'No has entrenado en las últimas 4 semanas. Con tu próximo entreno verás aquí qué toca en la siguiente sesión.'
+            : 'Registra tu primer entreno para recibir recomendaciones para la próxima sesión.'}
         </EmptyState>
       ) : (
         <>

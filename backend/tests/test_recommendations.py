@@ -140,6 +140,18 @@ def test_a_jump_too_big_for_the_weight_asks_for_reps_first() -> None:
     assert earned.suggested_sets == (PlannedSet(12, 8),) * 3
 
 
+def test_reps_first_never_asks_for_fewer_reps_than_were_done() -> None:
+    plan = [PlannedSet(reps=12, weight_kg=6)] * 2
+
+    # The first set went past the ceiling (14), the second is still below it.
+    progression = decide_progression(
+        performed=performed((6, 16), (6, 12), rpe=7), planned=plan, stalled=False, increment_kg=2.0
+    )
+
+    assert progression.reason is Reason.JUMP_TOO_BIG
+    assert [item.reps for item in progression.suggested_sets] == [16, 13]
+
+
 def test_a_jump_within_ten_percent_is_taken_at_once() -> None:
     plan = [PlannedSet(reps=10)] * 2
 
