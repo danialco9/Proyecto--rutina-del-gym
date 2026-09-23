@@ -1,5 +1,5 @@
 import { lazy, Suspense, useId, useState } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { QueryStatus } from '@/components/QueryStatus'
 import { formatDay, formatDecimal, formatKg, formatShortDay } from '@/lib/format'
 import { MUSCLE_GROUP_LABELS } from '@/lib/labels'
 import type { PersonalRecord } from '@/lib/types'
@@ -67,12 +67,11 @@ export function ExercisesTab({ records }: { records: PersonalRecord[] }) {
 
       <section className="space-y-2">
         <h2 className="font-heading text-lg font-medium">Evolución por sesión</h2>
-        {progress.isPending && <ChartFallback />}
-        {progress.isError && (
-          <Alert variant="destructive">
-            <AlertDescription>No se pudo cargar la evolución del ejercicio.</AlertDescription>
-          </Alert>
-        )}
+        <QueryStatus
+          query={progress}
+          loading={<ChartFallback />}
+          error="No se pudo cargar la evolución del ejercicio."
+        />
         {progress.data &&
           (sessions.length < 2 ? (
             <EmptyState>Con dos sesiones de este ejercicio verás su gráfica.</EmptyState>
