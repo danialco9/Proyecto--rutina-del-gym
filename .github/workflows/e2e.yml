@@ -35,6 +35,10 @@ jobs:
         working-directory: e2e
         run: pnpm install --frozen-lockfile
 
+      - name: Type-check the tests
+        working-directory: e2e
+        run: pnpm typecheck
+
       - name: Install the browser
         working-directory: e2e
         run: pnpm exec playwright install --with-deps chromium

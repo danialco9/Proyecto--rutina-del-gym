@@ -8,6 +8,7 @@ GYM_RATE_LIMIT_ENABLED=false docker compose up -d --wait --build   # from the re
 cd e2e
 pnpm install
 pnpm exec playwright install chromium
+pnpm typecheck
 pnpm test
 pnpm report          # opens the HTML report of the last run
 ```

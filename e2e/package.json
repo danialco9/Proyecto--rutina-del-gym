@@ -6,11 +6,13 @@
   "packageManager": "pnpm@12.4.1",
   "scripts": {
     "test": "playwright test",
+    "typecheck": "tsc",
     "report": "playwright show-report"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.0",
-    "@types/node": "^24.13.3"
+    "@types/node": "^24.13.3",
+    "typescript": "~6.0.3"
   },
   "engines": {
     "node": ">=24"
