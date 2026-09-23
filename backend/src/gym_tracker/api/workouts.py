@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query, status
+from fastapi import APIRouter, HTTPException, Query, Response, status
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
 from gym_tracker.api.common import UNPROCESSABLE, commit_or_conflict, ensure_exercises_visible, not_found
@@ -62,11 +63,28 @@ def read_workout(workout_id: int, session: SessionDep, user: CurrentUser) -> Wor
     return WorkoutRead.model_validate(_get_workout(session, workout_id, user))
 
 
+def _already_saved(session: Session, user: User, payload: WorkoutIn) -> Workout | None:
+    if payload.client_id is None:
+        return None
+    return session.scalar(
+        select(Workout)
+        .where(Workout.user_id == user.id, Workout.client_id == payload.client_id)
+        .options(selectinload(Workout.sets))
+    )
+
+
 @router.post("", status_code=status.HTTP_201_CREATED)
-def create_workout(payload: WorkoutIn, session: SessionDep, user: CurrentUser) -> WorkoutRead:
+def create_workout(payload: WorkoutIn, response: Response, session: SessionDep, user: CurrentUser) -> WorkoutRead:
+    # A phone that lost the connection mid-request cannot know whether the workout got through, so
+    # it sends it again with the same client id. The second delivery answers with the first one.
+    if (saved := _already_saved(session, user, payload)) is not None:
+        response.status_code = status.HTTP_200_OK
+        return WorkoutRead.model_validate(saved)
+
     _validate_references(session, user, payload)
     workout = Workout(
         user_id=user.id,
+        client_id=payload.client_id,
         routine_id=payload.routine_id,
         started_at=payload.started_at,
         ended_at=payload.ended_at,
@@ -74,7 +92,15 @@ def create_workout(payload: WorkoutIn, session: SessionDep, user: CurrentUser) -
         sets=_sets(payload),
     )
     session.add(workout)
-    commit_or_conflict(session, DUPLICATE_SET)
+    try:
+        session.commit()
+    except IntegrityError as error:
+        session.rollback()
+        # Two deliveries of the same workout raced each other: the other one saved it.
+        if (saved := _already_saved(session, user, payload)) is not None:
+            response.status_code = status.HTTP_200_OK
+            return WorkoutRead.model_validate(saved)
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=DUPLICATE_SET) from error
     return WorkoutRead.model_validate(_get_workout(session, workout.id, user))
 
 

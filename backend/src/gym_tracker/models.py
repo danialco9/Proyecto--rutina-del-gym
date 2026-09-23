@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -14,6 +15,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    Uuid,
     false,
     func,
     text,
@@ -111,7 +113,10 @@ class Workout(Base):
     """A training session, optionally started from a routine."""
 
     __tablename__ = "workouts"
-    __table_args__ = (CheckConstraint("ended_at IS NULL OR ended_at >= started_at", name="ended_after_started"),)
+    __table_args__ = (
+        CheckConstraint("ended_at IS NULL OR ended_at >= started_at", name="ended_after_started"),
+        UniqueConstraint("user_id", "client_id"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
@@ -119,6 +124,8 @@ class Workout(Base):
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     ended_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     notes: Mapped[str | None] = mapped_column(Text)
+    # Chosen by the device that logged the workout, so sending it again cannot save it twice.
+    client_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
 
     sets: Mapped[list[WorkoutSet]] = relationship(
         back_populates="workout", cascade="all, delete-orphan", order_by="WorkoutSet.id"
