@@ -1,6 +1,8 @@
 import { vi } from 'vitest'
 
 interface MockResponse {
+  /** Fail the way `fetch` does with no connection, instead of answering. */
+  networkError?: boolean
   status?: number
   body?: unknown
   headers?: Record<string, string>
@@ -30,6 +32,9 @@ export function mockApi(handlers: Record<string, MockHandler>): ApiCall[] {
 
       const handler = handlers[`${method} ${path}`] ?? { status: 404, body: { detail: 'Not mocked' } }
       const response = typeof handler === 'function' ? handler({ body }) : handler
+      if (response.networkError === true) {
+        throw new TypeError('Failed to fetch')
+      }
       const status = response.status ?? 200
       if (status === 204) {
         return new Response(null, { status })

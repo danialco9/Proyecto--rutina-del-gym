@@ -46,6 +46,10 @@ export function useSaveWorkout() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (payload: WorkoutIn) => apiFetch<Workout>('/workouts', { method: 'POST', body: payload }),
+    // By default a mutation started offline is paused until the connection returns, which would
+    // leave the finish button saying "Guardando…" in a gym with no coverage. The request fails at
+    // once instead, and the workout goes to the offline queue.
+    networkMode: 'always',
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: queryKeys.workouts }),

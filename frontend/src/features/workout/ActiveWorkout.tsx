@@ -5,11 +5,13 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { useCurrentUser } from '@/features/auth/queries'
 import { ApiError } from '@/lib/api'
 import { formatTime, plural } from '@/lib/format'
 import { completedSetCount, toWorkoutPayload, type DraftAction, type WorkoutDraft } from './draft'
 import { ExerciseCard } from './ExerciseCard'
 import { ExercisePicker } from './ExercisePicker'
+import { enqueueWorkout, isTransient } from './outbox'
 import { useSaveWorkout } from './queries'
 import { RestTimerBar } from './RestTimerBar'
 import { useRestTimer } from './useRestTimer'
@@ -27,6 +29,7 @@ export function ActiveWorkout({ draft, dispatch }: ActiveWorkoutProps) {
   const timer = useRestTimer()
   const saveWorkout = useSaveWorkout()
   const navigate = useNavigate()
+  const userId = useCurrentUser().data?.id
   const completed = completedSetCount(draft)
 
   // Finishing an exercise brings the next one into view with its first set already open.
@@ -38,15 +41,27 @@ export function ActiveWorkout({ draft, dispatch }: ActiveWorkoutProps) {
     }
   }
 
+  const close = () => {
+    timer.stop()
+    dispatch({ type: 'discard' })
+    navigate('/')
+  }
+
   const finish = () => {
-    saveWorkout.mutate(toWorkoutPayload(draft, new Date().toISOString()), {
+    const payload = toWorkoutPayload(draft, new Date().toISOString())
+    saveWorkout.mutate(payload, {
       onSuccess: () => {
-        timer.stop()
-        dispatch({ type: 'discard' })
+        close()
         toast.success('Entreno guardado')
-        navigate('/')
       },
       onError: (error) => {
+        // No coverage in the gym: the workout waits on the phone and goes up on its own later.
+        if (isTransient(error) && userId !== undefined) {
+          enqueueWorkout({ ...payload, client_id: draft.clientId }, userId)
+          close()
+          toast.info('Sin conexión: el entreno se ha quedado en el móvil y se subirá solo cuando vuelva.')
+          return
+        }
         toast.error(
           error instanceof ApiError && error.status === 401
             ? 'Tu sesión ha caducado. Entra de nuevo para guardar el entreno: sigue guardado en este dispositivo.'

@@ -11,6 +11,8 @@ import { OfflineNotice } from '@/components/OfflineNotice'
 import { Button } from '@/components/ui/button'
 import { useLogout } from '@/features/auth/queries'
 import { loadDraft, saveDraft } from '@/features/workout/draft'
+import { clearOutbox } from '@/features/workout/outbox'
+import { useOutbox, useOutboxSync } from '@/features/workout/useOutbox'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -32,19 +34,25 @@ function Wordmark({ className }: { className?: string }) {
 export function AppLayout() {
   const logout = useLogout()
   const navigate = useNavigate()
+  const queued = useOutbox()
+  useOutboxSync()
 
   const signOut = () => {
-    // A workout in progress must not be left on the device for the next account that signs in.
-    const unsavedWorkout = loadDraft() !== null
-    if (
-      unsavedWorkout &&
-      !window.confirm('Tienes un entreno sin guardar. Si cierras sesión se descartará. ¿Cerrar sesión?')
-    ) {
+    // Nothing unsent may be left on the device for the next account that signs in.
+    const warning =
+      loadDraft() !== null
+        ? 'Tienes un entreno sin guardar. Si cierras sesión se descartará. ¿Cerrar sesión?'
+        : queued.length > 0
+          ? 'Tienes entrenos sin subir que están solo en este móvil. Si cierras sesión se perderán. ¿Cerrar sesión?'
+          : null
+    if (warning !== null && !window.confirm(warning)) {
       return
     }
+    const userId = queued[0]?.userId
     logout.mutate(undefined, {
       onSuccess: () => {
         saveDraft(null)
+        if (userId !== undefined) clearOutbox(userId)
         navigate('/login', { replace: true })
       },
     })

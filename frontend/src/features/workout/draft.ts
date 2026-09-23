@@ -33,6 +33,9 @@ const draftExerciseSchema = z.object({
 })
 
 const workoutDraftSchema = z.object({
+  // Sent as the workout's client id: however many times it is sent, the server saves it once.
+  // Drafts saved before the offline queue have none and get one when they are read back.
+  clientId: z.string().default(() => randomId()),
   routineId: z.number().int().nullable(),
   routineName: z.string().nullable(),
   startedAt: z.iso.datetime({ offset: true }),
@@ -141,6 +144,7 @@ function updateSet(
 export function draftReducer(draft: WorkoutDraft | null, action: DraftAction): WorkoutDraft | null {
   if (action.type === 'start') {
     return {
+      clientId: newId(),
       routineId: action.routine?.id ?? null,
       routineName: action.routine?.name ?? null,
       startedAt: action.startedAt,
@@ -150,6 +154,7 @@ export function draftReducer(draft: WorkoutDraft | null, action: DraftAction): W
   }
   if (action.type === 'startDictated') {
     return {
+      clientId: newId(),
       routineId: null,
       routineName: null,
       startedAt: action.startedAt,
@@ -241,6 +246,7 @@ export function toWorkoutPayload(draft: WorkoutDraft, endedAt: string): WorkoutI
       }),
   )
   return {
+    client_id: draft.clientId,
     routine_id: draft.routineId,
     started_at: draft.startedAt,
     ended_at: endedAt,

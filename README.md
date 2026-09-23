@@ -167,5 +167,5 @@ A few decisions worth calling out:
 - [x] Workout logging in plain language (rule-based reader, with the seam a language model plugs into)
 - [ ] Language-model reading for the sentences the rules cannot reach
 - [x] Installable PWA: standalone on the home screen, app shell precached, opens offline on the remembered session
-- [ ] Offline workout saving with a queue that syncs when the connection returns
+- [x] Offline workout saving: a queue on the phone that syncs when the connection returns, deduplicated by a client id
 - [ ] Smarter recommendations
