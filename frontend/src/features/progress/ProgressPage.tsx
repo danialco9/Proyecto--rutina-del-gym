@@ -87,7 +87,10 @@ export function ProgressPage() {
               ))}
             </TabsList>
             <TabsContent value="proxima" className="pt-2">
-              <RecommendationsTab recommendations={overview.data.recommendations} />
+              <RecommendationsTab
+                recommendations={overview.data.recommendations}
+                volumeAdvice={overview.data.volume_advice}
+              />
             </TabsContent>
             <TabsContent value="ejercicios" className="pt-2">
               <ExercisesTab records={overview.data.personal_records} />

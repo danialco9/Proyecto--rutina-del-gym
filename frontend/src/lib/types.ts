@@ -131,6 +131,16 @@ export type BodyMeasurementIn = Omit<BodyMeasurement, 'id'>
 
 export type ProgressionAction = 'increase_load' | 'increase_reps' | 'hold' | 'deload'
 
+/** Why the engine chose the action; the app turns it into a sentence. */
+export type ProgressionReason =
+  | 'plateau'
+  | 'targets_hit'
+  | 'targets_hit_hard'
+  | 'targets_missed'
+  | 'easy_without_plan'
+  | 'without_plan'
+  | 'jump_too_big'
+
 export interface PlannedSet {
   reps: number | null
   weight_kg: number | null
@@ -140,6 +150,9 @@ export interface Recommendation {
   exercise_id: number
   exercise_name: string
   action: ProgressionAction
+  reason: ProgressionReason
+  /** The load step for this exercise (it depends on the equipment). */
+  increment_kg: number
   last_performed_on: string
   last_sets: { reps: number; weight_kg: number; rpe: number | null }[]
   /** The routine plan; empty when the exercise was done outside one. */
@@ -173,10 +186,21 @@ export interface ProgressOverview {
   recommendations: Recommendation[]
   personal_records: PersonalRecord[]
   weekly_volume: WeeklyVolume[]
+  volume_advice: VolumeAdvice[]
   body_weight: {
     entries: { measured_on: string; weight_kg: number; trend_kg: number }[]
     weekly_change_kg: number | null
   }
+}
+
+/** A main muscle trained outside the recommended weekly hard sets, on average. */
+export interface VolumeAdvice {
+  muscle_group: MuscleGroup
+  average_hard_sets: number
+  status: 'low' | 'high'
+  weeks: number
+  min_hard_sets: number
+  max_hard_sets: number
 }
 
 export interface ExerciseSession {
