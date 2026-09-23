@@ -180,7 +180,10 @@ def decide_progression(
                 for target in target_reps
             ]
             if not all(done >= ceiling for done, ceiling in zip(done_reps, ceilings, strict=True)):
-                more_reps = [min(done + 1, ceiling) for done, ceiling in zip(done_reps, ceilings, strict=True)]
+                # A set already at its ceiling keeps what was done; the rest add one rep.
+                more_reps = [
+                    done if done >= ceiling else done + 1 for done, ceiling in zip(done_reps, ceilings, strict=True)
+                ]
                 return suggest(Action.INCREASE_REPS, Reason.JUMP_TOO_BIG, weights, more_reps)
         return suggest(Action.INCREASE_LOAD, reason, [weight + increment for weight in weights])
 
