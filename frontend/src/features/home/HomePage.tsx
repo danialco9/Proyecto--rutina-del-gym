@@ -9,7 +9,7 @@ import {
 import { useState } from 'react'
 import { Link } from 'react-router'
 import heroImage from '@/assets/hero-squat.webp'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { QueryStatus } from '@/components/QueryStatus'
 import { buttonVariants } from '@/components/ui/button'
 import { useProgressOverview } from '@/features/progress/queries'
 import { loadDraft } from '@/features/workout/draft'
@@ -180,12 +180,7 @@ export function HomePage() {
 
       <section className="space-y-3">
         <h2 className="eyebrow">Últimos entrenos</h2>
-        {workouts.isPending && <p className="text-muted-foreground text-sm">Cargando…</p>}
-        {workouts.isError && (
-          <Alert variant="destructive">
-            <AlertDescription>No se pudieron cargar tus entrenos.</AlertDescription>
-          </Alert>
-        )}
+        <QueryStatus query={workouts} loading="Cargando…" error="No se pudieron cargar tus entrenos." />
         {workouts.data?.length === 0 && (
           <p className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
             Todavía no has registrado ningún entreno.

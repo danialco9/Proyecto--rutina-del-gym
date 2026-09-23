@@ -1,6 +1,6 @@
 import { useSearchParams } from 'react-router'
 import { PageHeader } from '@/components/PageHeader'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { QueryStatus } from '@/components/QueryStatus'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { formatDay, formatSignedKg } from '@/lib/format'
 import { BodyWeightTab } from './BodyWeightTab'
@@ -36,12 +36,11 @@ export function ProgressPage() {
         description="Qué toca en la próxima sesión y cómo evolucionas."
       />
 
-      {overview.isPending && <p className="text-muted-foreground text-sm">Calculando tu progreso…</p>}
-      {overview.isError && (
-        <Alert variant="destructive">
-          <AlertDescription>No se pudo cargar tu progreso.</AlertDescription>
-        </Alert>
-      )}
+      <QueryStatus
+        query={overview}
+        loading="Calculando tu progreso…"
+        error="No se pudo cargar tu progreso."
+      />
 
       {overview.data && (
         <>

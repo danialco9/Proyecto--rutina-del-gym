@@ -1,7 +1,7 @@
 import { ChevronRightIcon, PlusIcon } from 'lucide-react'
 import { Link } from 'react-router'
 import { PageHeader } from '@/components/PageHeader'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { QueryStatus } from '@/components/QueryStatus'
 import { buttonVariants } from '@/components/ui/button'
 import { useRoutines } from '@/features/workout/queries'
 import { plural } from '@/lib/format'
@@ -40,12 +40,7 @@ export function RoutinesPage() {
         }
       />
 
-      {routines.isPending && <p className="text-muted-foreground text-sm">Cargando rutinas…</p>}
-      {routines.isError && (
-        <Alert variant="destructive">
-          <AlertDescription>No se pudieron cargar las rutinas.</AlertDescription>
-        </Alert>
-      )}
+      <QueryStatus query={routines} loading="Cargando rutinas…" error="No se pudieron cargar las rutinas." />
       {routines.data?.length === 0 && (
         <p className="text-muted-foreground rounded-xl border border-dashed p-6 text-center text-sm">
           Aún no tienes rutinas. Crea una con los ejercicios que sueles hacer cada día.

@@ -1,6 +1,6 @@
 import { lazy, Suspense, useRef, useState } from 'react'
 import { PageHeader } from '@/components/PageHeader'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { QueryStatus } from '@/components/QueryStatus'
 import { formatKg, formatSignedKg } from '@/lib/format'
 import { localToday } from './measurement-form'
 import { MeasurementForm } from './MeasurementForm'
@@ -31,12 +31,11 @@ export function MeasurementsPage() {
         description="Pésate en condiciones parecidas (por ejemplo, en ayunas) para comparar mejor."
       />
 
-      {measurements.isPending && <p className="text-muted-foreground text-sm">Cargando medidas…</p>}
-      {measurements.isError && (
-        <Alert variant="destructive">
-          <AlertDescription>No se pudieron cargar tus medidas.</AlertDescription>
-        </Alert>
-      )}
+      <QueryStatus
+        query={measurements}
+        loading="Cargando medidas…"
+        error="No se pudieron cargar tus medidas."
+      />
 
       {measurements.data && (
         <>

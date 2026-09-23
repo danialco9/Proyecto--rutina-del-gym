@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { QueryStatus } from '@/components/QueryStatus'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '@/lib/labels'
@@ -36,12 +36,12 @@ export function ExercisePicker({ open, onOpenChange, onSelect }: ExercisePickerP
           />
         </div>
         <div className="min-h-0 overflow-y-auto px-2 pb-4">
-          {exercises.isPending && <p className="text-muted-foreground px-2 text-sm">Cargando ejercicios…</p>}
-          {exercises.isError && (
-            <Alert variant="destructive" className="mx-2 w-auto">
-              <AlertDescription>No se pudo cargar el catálogo de ejercicios.</AlertDescription>
-            </Alert>
-          )}
+          <QueryStatus
+            query={exercises}
+            loading="Cargando ejercicios…"
+            error="No se pudo cargar el catálogo de ejercicios."
+            className="mx-2 w-auto"
+          />
           {exercises.isSuccess && results.length === 0 && (
             <p className="text-muted-foreground px-2 text-sm">No hay ejercicios que coincidan.</p>
           )}

@@ -1,4 +1,5 @@
 import { useParams } from 'react-router'
+import { QueryStatus } from '@/components/QueryStatus'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { useRoutines } from '@/features/workout/queries'
 import { RoutineEditor } from './RoutineEditor'
@@ -11,16 +12,14 @@ export function RoutineEditorPage() {
   if (routineId === undefined) {
     return <RoutineEditor key="new" />
   }
-  if (routines.isPending) {
-    return <p className="text-muted-foreground text-sm">Cargando rutina…</p>
+  if (routines.isPending || routines.isError) {
+    return <QueryStatus query={routines} loading="Cargando rutina…" error="No se pudo cargar la rutina." />
   }
-  const routine = routines.data?.find((item) => String(item.id) === routineId)
-  if (routines.isError || routine === undefined) {
+  const routine = routines.data.find((item) => String(item.id) === routineId)
+  if (routine === undefined) {
     return (
       <Alert variant="destructive">
-        <AlertDescription>
-          {routines.isError ? 'No se pudo cargar la rutina.' : 'Esta rutina no existe o fue eliminada.'}
-        </AlertDescription>
+        <AlertDescription>Esta rutina no existe o fue eliminada.</AlertDescription>
       </Alert>
     )
   }
