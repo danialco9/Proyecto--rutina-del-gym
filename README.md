@@ -38,8 +38,12 @@ account with 12 weeks of simulated training. No sign-up needed.
 - **Progress dashboard.** Estimated 1RM per exercise, weekly hard sets by muscle group, personal
   records and body weight trend.
 - **Training recommendations.** The analytics engine compares the sets you actually did against the
-  ones the routine planned: everything hit at RPE ≤ 8 suggests `+2.5 kg` on every planned set
-  (keeping the pyramid shape), missed reps suggest holding, and a detected plateau suggests a deload.
+  ones the routine planned: everything hit at RPE ≤ 8 adds load to every planned set (keeping the
+  pyramid shape), missed reps suggest holding, and a detected plateau suggests a deload. The load
+  step depends on the equipment (2 kg dumbbells, 2.5 kg barbell, doubled for heavy leg lifts), and
+  when it would be more than 10% of the weight, reps go up first. Every suggestion says why, and
+  only exercises trained in the last four weeks get one. It also flags main muscles trained below
+  10 or above 20 hard sets a week, counting a set as half for its secondary muscles.
 
 ## Architecture
 
@@ -180,4 +184,4 @@ A few decisions worth calling out:
 - [ ] Language-model reading for the sentences the rules cannot reach
 - [x] Installable PWA: standalone on the home screen, app shell precached, opens offline on the remembered session
 - [x] Offline workout saving: a queue on the phone that syncs when the connection returns, deduplicated by a client id
-- [ ] Smarter recommendations
+- [x] Smarter recommendations: per-equipment load steps, reasons, weekly volume advice

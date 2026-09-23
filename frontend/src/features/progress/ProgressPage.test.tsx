@@ -27,6 +27,8 @@ const OVERVIEW: ProgressOverview = {
       exercise_id: 11,
       exercise_name: 'Sentadilla con barra',
       action: 'increase_load',
+      reason: 'targets_hit',
+      increment_kg: 5,
       last_performed_on: '2026-09-09',
       last_sets: Array.from({ length: 4 }, () => ({ reps: 8, weight_kg: 77.5, rpe: 8 })),
       target_sets: Array.from({ length: 4 }, () => ({ reps: 6, weight_kg: 80 })),
@@ -36,6 +38,8 @@ const OVERVIEW: ProgressOverview = {
       exercise_id: 1,
       exercise_name: 'Press banca con barra',
       action: 'increase_reps',
+      reason: 'without_plan',
+      increment_kg: 2.5,
       last_performed_on: '2026-09-15',
       last_sets: [6, 6, 4].map((reps) => ({ reps, weight_kg: 67.5, rpe: 9 })),
       target_sets: [],
@@ -45,6 +49,8 @@ const OVERVIEW: ProgressOverview = {
       exercise_id: 5,
       exercise_name: 'Prensa de piernas',
       action: 'deload',
+      reason: 'plateau',
+      increment_kg: 5,
       last_performed_on: '2026-09-09',
       last_sets: [
         { reps: 14, weight_kg: 122.5, rpe: 8 },
@@ -95,6 +101,16 @@ const OVERVIEW: ProgressOverview = {
       ],
     },
   ],
+  volume_advice: [
+    {
+      muscle_group: 'hamstrings',
+      average_hard_sets: 3.5,
+      status: 'low',
+      weeks: 4,
+      min_hard_sets: 10,
+      max_hard_sets: 20,
+    },
+  ],
   body_weight: {
     entries: [
       { measured_on: '2026-09-14', weight_kg: 79.9, trend_kg: 80.1 },
@@ -138,6 +154,18 @@ describe('Progress', () => {
       within(deload!).getByText(/122,5×14 · 132,5×12 · 142,5×9 · objetivo 120×12 · 130×10 · 140×8/),
     ).toBeInTheDocument()
     expect(within(deload!).getByText('110×12 · 117,5×10 · 127,5×8')).toBeInTheDocument()
+    // Each suggestion says why.
+    expect(
+      within(increase!).getByText('Completaste todas las series objetivo con RPE 8 como máximo: sube 5 kg.'),
+    ).toBeInTheDocument()
+    expect(within(deload!).getByText(/no mejora en las últimas sesiones/)).toBeInTheDocument()
+
+    const volume = screen.getByRole('region', { name: 'Volumen semanal' })
+    expect(within(volume).getByText('Isquiotibiales')).toBeInTheDocument()
+    expect(within(volume).getByText(/Lo recomendado son 10–20 series duras/)).toBeInTheDocument()
+    expect(
+      within(volume).getByText('3,5 series duras por semana: añade algunas en tus rutinas.'),
+    ).toBeInTheDocument()
   })
 
   it('charts the progress of the chosen exercise', async () => {
@@ -190,6 +218,7 @@ describe('Progress', () => {
           recommendations: [],
           personal_records: [],
           weekly_volume: EMPTY_WEEKS,
+          volume_advice: [],
           body_weight: { entries: [], weekly_change_kg: null },
         } satisfies ProgressOverview,
       },

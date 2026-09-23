@@ -10,10 +10,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select
 
 from gym_tracker.analysis import (
+    DEFAULT_VOLUME_RULES,
     TrainingLog,
     personal_records,
     recommend,
     session_bests,
+    volume_advice,
     weekly_volume_by_muscle,
     weekly_weight_change,
     weight_trend,
@@ -35,6 +37,7 @@ from gym_tracker.schemas import (
     PlannedSetRead,
     ProgressOverviewRead,
     RecommendationRead,
+    VolumeAdviceRead,
     WeeklyVolumeRead,
 )
 
@@ -61,19 +64,34 @@ def _activity(log: TrainingLog, today: date) -> ActivityRead:
     )
 
 
-def _recommendations(log: TrainingLog, work: pd.DataFrame) -> list[RecommendationRead]:
-    last_dates = work.groupby("exercise_id")["date"].max().dt.date
+def _recommendations(log: TrainingLog, today: date) -> list[RecommendationRead]:
     return [
         RecommendationRead(
             exercise_id=int(item.exercise_id),
             exercise_name=item.exercise_name,
             action=item.action,
-            last_performed_on=last_dates[item.exercise_id],
+            reason=item.reason,
+            increment_kg=item.increment_kg,
+            last_performed_on=item.last_performed_on,
             last_sets=[PerformedSetRead(reps=s.reps, weight_kg=s.weight_kg, rpe=s.rpe) for s in item.last_sets],
             target_sets=[PlannedSetRead(reps=s.reps, weight_kg=s.weight_kg) for s in item.target_sets],
             suggested_sets=[PlannedSetRead(reps=s.reps, weight_kg=s.weight_kg) for s in item.suggested_sets],
         )
-        for item in recommend(log)
+        for item in recommend(log, today=today)
+    ]
+
+
+def _volume_advice(log: TrainingLog, today: date) -> list[VolumeAdviceRead]:
+    return [
+        VolumeAdviceRead(
+            muscle_group=item.muscle_group,
+            average_hard_sets=item.average_hard_sets,
+            status=item.status,
+            weeks=item.weeks,
+            min_hard_sets=DEFAULT_VOLUME_RULES.min_hard_sets,
+            max_hard_sets=DEFAULT_VOLUME_RULES.max_hard_sets,
+        )
+        for item in volume_advice(log, today)
     ]
 
 
@@ -141,9 +159,10 @@ def read_overview(
     bests = session_bests(work)
     return ProgressOverviewRead(
         activity=_activity(log, today),
-        recommendations=_recommendations(log, work) if not work.empty else [],
+        recommendations=_recommendations(log, today),
         personal_records=_personal_records(log, work, bests) if not work.empty else [],
         weekly_volume=_weekly_volume(log, work, today),
+        volume_advice=_volume_advice(log, today),
         body_weight=_body_weight(log),
     )
 
