@@ -31,6 +31,9 @@ services:
       GYM_DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-gym}:${POSTGRES_PASSWORD:-gym-local-password}@db:5432/${POSTGRES_DB:-gym_tracker}
       GYM_JWT_SECRET: ${GYM_JWT_SECRET:-local-development-secret-do-not-use-in-production}
       GYM_COOKIE_SECURE: "false"
+      # The end-to-end suite registers and signs in far more often than a person would, so it turns
+      # the limiter off (`GYM_RATE_LIMIT_ENABLED=false`); the limits themselves are covered by tests.
+      GYM_RATE_LIMIT_ENABLED: ${GYM_RATE_LIMIT_ENABLED:-true}
       GYM_DEMO_ENABLED: "true"
       GYM_SEED_DEMO: "true"
       GYM_TIMEZONE: ${GYM_TIMEZONE:-Europe/Madrid}

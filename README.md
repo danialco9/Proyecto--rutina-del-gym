@@ -80,6 +80,7 @@ production Vercel rewrites `/api` to the Render service; in Docker Compose nginx
 ```
 backend/    FastAPI service, analytics engine and production Dockerfile
 frontend/   React single-page app, nginx image and Vercel config
+e2e/        Playwright flows against the full stack
 data/       Interim CSV training log
 docs/       Deployment guide
 docker-compose.yml   Full local stack (PostgreSQL, API, web)
@@ -133,6 +134,14 @@ cd frontend && pnpm lint && pnpm test && pnpm build
 Backend tests run against a real PostgreSQL started with testcontainers, so migrations and queries
 are exercised the same way they run in production.
 
+The end-to-end flows need the stack running, and drive a phone-sized browser through nginx, the API
+and PostgreSQL with nothing mocked ([how a run is set up](e2e/README.md)):
+
+```bash
+GYM_RATE_LIMIT_ENABLED=false docker compose up -d --wait --build
+cd e2e && pnpm install && pnpm exec playwright install chromium && pnpm test
+```
+
 ## Engineering notes
 
 A few decisions worth calling out:
@@ -163,6 +172,7 @@ A few decisions worth calling out:
 - [x] Rate limiting on login and registration
 - [x] Deployment setup: Vercel + Render (Docker) + Neon, public demo with nightly reset ([guide](docs/deployment.md))
 - [x] One-command local stack with Docker Compose
+- [x] End-to-end tests (Playwright) on the full stack, in CI
 - [ ] Screenshots in this README
 - [x] Workout logging in plain language (rule-based reader, with the seam a language model plugs into)
 - [ ] Language-model reading for the sentences the rules cannot reach

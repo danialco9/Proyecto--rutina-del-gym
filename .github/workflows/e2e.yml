@@ -1,0 +1,61 @@
+name: End-to-end
+
+# Kept apart from the unit CI: an end-to-end failure and a lint failure say different things, and
+# a red tick should say which one it is at a glance.
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Flows on the full stack
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: pnpm/action-setup@v6.1.0
+        with:
+          package_json_file: e2e/package.json
+
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version-file: frontend/.node-version
+          cache: pnpm
+          cache-dependency-path: e2e/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: e2e
+        run: pnpm install --frozen-lockfile
+
+      - name: Install the browser
+        working-directory: e2e
+        run: pnpm exec playwright install --with-deps chromium
+
+      # The same stack a contributor runs locally: nginx serving the app, the API and PostgreSQL.
+      - name: Start the stack
+        env:
+          GYM_RATE_LIMIT_ENABLED: "false"
+        run: docker compose up -d --wait --build
+
+      - name: Run the flows
+        working-directory: e2e
+        run: pnpm test
+
+      - name: Collect the API logs on failure
+        if: failure()
+        run: docker compose logs --no-color api db
+
+      - uses: actions/upload-artifact@v5.0.0
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
