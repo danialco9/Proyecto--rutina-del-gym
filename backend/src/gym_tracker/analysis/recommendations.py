@@ -12,7 +12,7 @@ from typing import Any
 import pandas as pd
 
 from gym_tracker.analysis.loader import TrainingLog
-from gym_tracker.analysis.metrics import detect_plateaus, session_bests, weekly_volume_by_muscle, working_sets
+from gym_tracker.analysis.metrics import detect_plateaus, session_bests, working_sets
 from gym_tracker.enums import Equipment, MuscleGroup
 
 
@@ -301,6 +301,8 @@ class VolumeRules:
 
     min_hard_sets: int = 10
     max_hard_sets: int = 20
+    # A set counts in full for the exercise's main muscle and this much for each secondary one.
+    secondary_share: float = 0.5
     # Complete weeks averaged (the current, unfinished one never counts).
     weeks: int = 4
     # Weeks of history needed before judging at all.
@@ -331,9 +333,21 @@ class VolumeAdvice:
     weeks: int
 
 
+def _muscle_shares(exercises: pd.DataFrame, secondary_share: float) -> pd.DataFrame:
+    """How much one set of each exercise counts for each muscle it trains."""
+    rows = []
+    for exercise in exercises.to_dict(orient="records"):
+        rows.append((exercise["exercise_id"], exercise["muscle_group"], 1.0))
+        secondary = exercise["secondary_muscles"] if isinstance(exercise["secondary_muscles"], str) else ""
+        rows.extend((exercise["exercise_id"], muscle, secondary_share) for muscle in secondary.split(";") if muscle)
+    return pd.DataFrame(rows, columns=["exercise_id", "muscle_group", "share"])
+
+
 def volume_advice(log: TrainingLog, today: date, rules: VolumeRules = DEFAULT_VOLUME_RULES) -> list[VolumeAdvice]:
     """Main muscles whose average weekly hard sets fall outside the recommended range.
 
+    A set counts in full for the exercise's main muscle and ``secondary_share`` for each secondary
+    one: a squat is a quads exercise, but a leg day of squats is not zero sets for the glutes.
     Only complete weeks since training started count, so a first week, or the current one half
     done, never reads as too little.
     """
@@ -351,9 +365,10 @@ def volume_advice(log: TrainingLog, today: date, rules: VolumeRules = DEFAULT_VO
     if len(weeks) < rules.min_weeks:
         return []
 
-    volume = weekly_volume_by_muscle(work, log.exercises)
-    in_window = volume[volume["week_start"].dt.date.isin(weeks)]
-    totals = in_window.groupby("muscle_group")["hard_sets"].sum()
+    week_starts = (work["date"] - pd.to_timedelta(work["date"].dt.weekday, unit="D")).dt.date
+    in_window = work.loc[week_starts.isin(weeks), ["exercise_id"]]
+    shares = _muscle_shares(log.exercises, rules.secondary_share)
+    totals = in_window.merge(shares, on="exercise_id").groupby("muscle_group")["share"].sum()
 
     advice = []
     for muscle in MAIN_MUSCLES:

@@ -251,6 +251,22 @@ def test_volume_advice_accepts_the_recommended_range(write_log: WriteLog) -> Non
     assert "chest" not in {item.muscle_group for item in volume_advice(log, today=date(2026, 9, 16))}
 
 
+def test_volume_advice_counts_secondary_muscles_as_half_a_set(write_log: WriteLog) -> None:
+    data_dir = write_log(
+        exercises="back-squat,Sentadilla con barra,quads,glutes;adductors,barbell",
+        workouts="\n".join(f"w{week},{date(2026, 8, 17) + timedelta(weeks=week)},," for week in range(5)),
+        workout_sets="\n".join(
+            f"w{week},back-squat,{number},5,100,8,false" for week in range(5) for number in range(1, 13)
+        ),
+    )
+
+    advice = {item.muscle_group: item for item in volume_advice(load_training_log(data_dir), date(2026, 9, 16))}
+
+    # 12 squat sets a week: in range for the quads, 6 for the glutes.
+    assert "quads" not in advice
+    assert advice["glutes"].average_hard_sets == 6.0
+
+
 def test_volume_advice_waits_for_two_complete_weeks(write_log: WriteLog) -> None:
     data_dir = write_log(
         exercises="bench-press,Press banca con barra,chest,triceps,barbell",
