@@ -30,7 +30,9 @@ account with 12 weeks of simulated training. No sign-up needed.
   shell is precached by a service worker, so it starts with no connection at all. Once you have
   signed in on that device it opens straight into the app offline, on the last session the server
   confirmed, instead of a login page it cannot submit. The API itself is never cached — a stale
-  workout is worse than an honest error — so the screens say when they are offline.
+  workout is worse than an honest error — so the screens say when they are offline. A workout
+  finished with no coverage waits in a queue on the phone and is sent on its own when the
+  connection returns; it carries a client id, so a retry after a lost answer is never saved twice.
 - **Body measurements.** Quick weight entry plus an optional full set of measurements, with history
   and a weight trend chart.
 - **Progress dashboard.** Estimated 1RM per exercise, weekly hard sets by muscle group, personal
