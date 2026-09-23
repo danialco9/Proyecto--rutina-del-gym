@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('logs a free workout set by set and finds it on the home page afterwards', async ({ page }) => {
   await page.goto('/')
@@ -12,8 +12,8 @@ test('logs a free workout set by set and finds it on the home page afterwards', 
   await page.getByRole('button', { name: 'Sentadilla con barra' }).click()
 
   // One set at a time: fill the open set in, press "Hecho", and the next one opens.
-  await page.getByLabel('Peso (kg)').fill('80')
-  await page.getByLabel('Reps').fill('5')
+  await page.getByRole('textbox', { name: 'Peso (kg)', exact: true }).fill('80')
+  await page.getByRole('textbox', { name: 'Reps', exact: true }).fill('5')
   await page.getByRole('button', { name: 'RPE 8', exact: true }).click()
   await page.getByRole('button', { name: 'Completar serie 1' }).click()
 
@@ -21,7 +21,7 @@ test('logs a free workout set by set and finds it on the home page afterwards', 
 
   await page.getByRole('button', { name: 'Añadir serie' }).click()
   // The new set carries the previous one's numbers over, which is the point of the button.
-  await expect(page.getByLabel('Peso (kg)')).toHaveValue('80')
+  await expect(page.getByRole('textbox', { name: 'Peso (kg)', exact: true })).toHaveValue('80')
   await page.getByRole('button', { name: 'Completar serie 2' }).click()
 
   await expect(page.getByText('2 series completadas')).toBeVisible()

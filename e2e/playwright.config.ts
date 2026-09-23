@@ -13,12 +13,5 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [['github'], ['html', { open: 'never' }]] : [['list']],
-  projects: [
-    { name: 'setup', testMatch: /.*\.setup\.ts/ },
-    {
-      name: 'mobile',
-      use: { ...devices['Pixel 7'], storageState: '.auth/user.json' },
-      dependencies: ['setup'],
-    },
-  ],
+  projects: [{ name: 'mobile', use: { ...devices['Pixel 7'] } }],
 })

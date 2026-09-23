@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './fixtures'
 
 test('logs the body weight of the day and shows it in the history', async ({ page }) => {
   await page.goto('/medidas')
