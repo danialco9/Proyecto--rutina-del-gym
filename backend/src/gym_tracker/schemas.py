@@ -8,7 +8,7 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
-from gym_tracker.analysis.recommendations import Action
+from gym_tracker.analysis.recommendations import Action, Reason, VolumeStatus
 from gym_tracker.enums import Equipment, MuscleGroup
 from gym_tracker.slugs import SLUG_PATTERN
 from gym_tracker.users import MIN_PASSWORD_LENGTH
@@ -282,11 +282,17 @@ class PlannedSetRead(BaseModel):
 
 
 class RecommendationRead(BaseModel):
-    """``target_sets`` is the routine plan (empty without one); ``suggested_sets`` always has weights."""
+    """``target_sets`` is the routine plan (empty without one); ``suggested_sets`` always has weights.
+
+    ``reason`` says why ``action`` was chosen and ``increment_kg`` is the load step used for this
+    exercise, so the app can explain the suggestion.
+    """
 
     exercise_id: int
     exercise_name: str
     action: Action
+    reason: Reason
+    increment_kg: float
     last_performed_on: date
     last_sets: list[PerformedSetRead]
     target_sets: list[PlannedSetRead]
@@ -315,6 +321,18 @@ class WeeklyVolumeRead(BaseModel):
     muscles: list[MuscleVolumeRead]
 
 
+class VolumeAdviceRead(BaseModel):
+    """A main muscle trained outside ``min_hard_sets``-``max_hard_sets`` hard sets a week, on
+    average over the last ``weeks`` complete weeks."""
+
+    muscle_group: str
+    average_hard_sets: float
+    status: VolumeStatus
+    weeks: int
+    min_hard_sets: int
+    max_hard_sets: int
+
+
 class BodyWeightPointRead(BaseModel):
     measured_on: date
     weight_kg: float
@@ -331,6 +349,7 @@ class ProgressOverviewRead(BaseModel):
     recommendations: list[RecommendationRead]
     personal_records: list[PersonalRecordRead]
     weekly_volume: list[WeeklyVolumeRead]
+    volume_advice: list[VolumeAdviceRead]
     body_weight: BodyWeightRead
 
 

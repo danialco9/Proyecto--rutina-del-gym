@@ -100,6 +100,7 @@ def test_overview_without_data(progress_client: TestClient) -> None:
     ]
     assert all(week["muscles"] == [] for week in overview["weekly_volume"])
     assert overview["body_weight"] == {"entries": [], "weekly_change_kg": None}
+    assert overview["volume_advice"] == []
 
 
 def test_overview_summarizes_the_training_log(progress_client: TestClient, training_log: dict[str, int]) -> None:
@@ -116,6 +117,8 @@ def test_overview_summarizes_the_training_log(progress_client: TestClient, train
             "exercise_id": training_log["bench"],
             "exercise_name": "Press banca con barra",
             "action": "increase_load",
+            "reason": "targets_hit",
+            "increment_kg": 2.5,
             "last_performed_on": "2026-09-15",
             "last_sets": [{"reps": 8, "weight_kg": 62.5, "rpe": 7.5}] * 3,
             "target_sets": [{"reps": 8, "weight_kg": None}] * 3,
@@ -125,6 +128,8 @@ def test_overview_summarizes_the_training_log(progress_client: TestClient, train
             "exercise_id": training_log["pulldown"],
             "exercise_name": "Jalón al pecho",
             "action": "increase_reps",
+            "reason": "without_plan",
+            "increment_kg": 2.5,
             "last_performed_on": "2026-09-15",
             "last_sets": [{"reps": 10, "weight_kg": 50.0, "rpe": 9.0}] * 2,
             "target_sets": [],
@@ -164,6 +169,8 @@ def test_overview_summarizes_the_training_log(progress_client: TestClient, train
             ],
         },
     ]
+    # One complete week of training so far: too early to judge the volume.
+    assert overview["volume_advice"] == []
     assert overview["body_weight"] == {
         "entries": [
             {"measured_on": "2026-09-10", "weight_kg": 80.0, "trend_kg": 80.0},
@@ -171,6 +178,27 @@ def test_overview_summarizes_the_training_log(progress_client: TestClient, train
             {"measured_on": "2026-09-15", "weight_kg": 79.4, "trend_kg": 79.67},
         ],
         "weekly_change_kg": -0.8,
+    }
+
+
+def test_overview_advises_on_weekly_volume_and_drops_old_exercises(
+    progress_client: TestClient, training_log: dict[str, int]
+) -> None:
+    progress_client.app.dependency_overrides[get_today] = lambda: date(2026, 10, 21)  # type: ignore[attr-defined]
+
+    overview = progress_client.get("/api/progress/overview").json()
+
+    # Last trained on 2026-09-15, more than four weeks before: no next step for them.
+    assert overview["recommendations"] == []
+    # Four complete weeks from 2026-09-21: chest trained in none of them.
+    advice = {item["muscle_group"]: item for item in overview["volume_advice"]}
+    assert advice["chest"] == {
+        "muscle_group": "chest",
+        "average_hard_sets": 0.0,
+        "status": "low",
+        "weeks": 4,
+        "min_hard_sets": 10,
+        "max_hard_sets": 20,
     }
 
 

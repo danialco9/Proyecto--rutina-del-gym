@@ -5,13 +5,20 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from dataclasses import dataclass
+from datetime import date, timedelta
 from enum import StrEnum
 from typing import Any
 
 import pandas as pd
 
 from gym_tracker.analysis.loader import TrainingLog
-from gym_tracker.analysis.metrics import detect_plateaus, session_bests, working_sets
+from gym_tracker.analysis.metrics import detect_plateaus, session_bests, weekly_volume_by_muscle, working_sets
+from gym_tracker.enums import Equipment, MuscleGroup
+
+
+class VolumeStatus(StrEnum):
+    LOW = "low"
+    HIGH = "high"
 
 
 class Action(StrEnum):
@@ -21,6 +28,18 @@ class Action(StrEnum):
     DELOAD = "deload"
 
 
+class Reason(StrEnum):
+    """Why an action was chosen, for the app to explain it in its own words."""
+
+    PLATEAU = "plateau"
+    TARGETS_HIT = "targets_hit"
+    TARGETS_HIT_HARD = "targets_hit_hard"
+    TARGETS_MISSED = "targets_missed"
+    EASY_WITHOUT_PLAN = "easy_without_plan"
+    WITHOUT_PLAN = "without_plan"
+    JUMP_TOO_BIG = "jump_too_big"
+
+
 @dataclass(frozen=True)
 class ProgressionRules:
     load_increment_kg: float = 2.5
@@ -28,9 +47,40 @@ class ProgressionRules:
     easy_rpe: float = 7.0
     deload_factor: float = 0.9
     plateau_window: int = 3
+    # A jump above this share of the working weight is too big to take at once: reps go first.
+    max_relative_jump: float = 0.10
+    # Reps over the target on every set that earn the jump anyway (10 -> 12, then more weight).
+    rep_ceiling_margin: int = 2
+    # The same ceiling for sets without target reps.
+    rep_ceiling_without_plan: int = 15
+    # Exercises not trained for longer than this are left out of the suggestions.
+    max_age_days: int = 28
 
 
 DEFAULT_RULES = ProgressionRules()
+
+# The smallest load step each kind of equipment usually allows (dumbbells go up per hand).
+_BASE_INCREMENT_KG: dict[str, float] = {
+    Equipment.BARBELL: 2.5,
+    Equipment.EZ_BAR: 2.5,
+    Equipment.SMITH_MACHINE: 2.5,
+    Equipment.DUMBBELL: 2.0,
+    Equipment.KETTLEBELL: 4.0,
+    Equipment.MACHINE: 2.5,
+    Equipment.CABLE: 2.5,
+    Equipment.BODYWEIGHT: 2.5,
+    Equipment.BAND: 2.5,
+}
+_LOWER_BODY: set[str] = {MuscleGroup.QUADS, MuscleGroup.GLUTES, MuscleGroup.HAMSTRINGS}
+_DOUBLED_FOR_LOWER_BODY: set[str] = {Equipment.BARBELL, Equipment.SMITH_MACHINE, Equipment.MACHINE}
+
+
+def load_increment(equipment: str | None, muscle_group: str | None, rules: ProgressionRules = DEFAULT_RULES) -> float:
+    """The load step for an exercise: what its equipment allows, doubled for heavy leg lifts."""
+    base = _BASE_INCREMENT_KG.get(equipment or "", rules.load_increment_kg)
+    if muscle_group in _LOWER_BODY and equipment in _DOUBLED_FOR_LOWER_BODY:
+        return base * 2
+    return base
 
 
 @dataclass(frozen=True)
@@ -47,10 +97,20 @@ class PlannedSet:
 
 
 @dataclass(frozen=True)
+class Progression:
+    action: Action
+    reason: Reason
+    suggested_sets: tuple[PlannedSet, ...]
+
+
+@dataclass(frozen=True)
 class Recommendation:
     exercise_id: str
     exercise_name: str
     action: Action
+    reason: Reason
+    increment_kg: float
+    last_performed_on: date
     last_sets: tuple[PerformedSet, ...]
     target_sets: tuple[PlannedSet, ...]
     suggested_sets: tuple[PlannedSet, ...]
@@ -74,8 +134,9 @@ def decide_progression(
     performed: Sequence[PerformedSet],
     planned: Sequence[PlannedSet],
     stalled: bool,
+    increment_kg: float | None = None,
     rules: ProgressionRules = DEFAULT_RULES,
-) -> tuple[Action, tuple[PlannedSet, ...]]:
+) -> Progression:
     """Choose the next step for one exercise from its working sets in the last session.
 
     Sets are compared in order with the routine's planned sets, so ramping the weight or the
@@ -83,45 +144,67 @@ def decide_progression(
 
     - Stalled: deload ``deload_factor`` of each weight, rounded down to the increment.
     - Every planned set done with at least its target reps and RPE <= ``max_rpe_to_progress``:
-      add ``load_increment_kg`` to every set.
+      add ``increment_kg`` to every set.
     - Targets hit but the effort was too high: repeat the same weights.
     - Targets missed: keep the weights and work towards the target reps.
     - Without target reps, add load only when the effort was easy.
+
+    When adding load would be a jump above ``max_relative_jump`` of the working weight (2 kg on a
+    6 kg dumbbell), one more rep per set comes first, until every set is ``rep_ceiling_margin``
+    reps over its target; then the jump is earned.
     """
     if not performed:
         raise ValueError("At least one performed set is needed")
+    increment = rules.load_increment_kg if increment_kg is None else increment_kg
     weights = _next_weights(performed, planned)
-    reps = [planned[index].reps if planned else performed[index].reps for index in range(len(weights))]
-    increment = rules.load_increment_kg
+    target_reps = [planned[index].reps if planned else None for index in range(len(weights))]
+    # What was actually done in each set; a set that was skipped counts as its last done one.
+    done_reps = [performed[min(index, len(performed) - 1)].reps for index in range(len(weights))]
+    reps = [target if target is not None else done for target, done in zip(target_reps, done_reps, strict=True)]
     rpes = [performed_set.rpe for performed_set in performed if performed_set.rpe is not None]
     max_rpe = max(rpes) if rpes else None
 
-    def suggest(action: Action, new_weights: Sequence[float]) -> tuple[Action, tuple[PlannedSet, ...]]:
-        return action, tuple(
-            PlannedSet(reps=rep, weight_kg=weight) for rep, weight in zip(reps, new_weights, strict=True)
+    def suggest(
+        action: Action, reason: Reason, new_weights: Sequence[float], new_reps: Sequence[int] = reps
+    ) -> Progression:
+        return Progression(
+            action,
+            reason,
+            tuple(PlannedSet(reps=rep, weight_kg=weight) for rep, weight in zip(new_reps, new_weights, strict=True)),
         )
+
+    def load_up(reason: Reason) -> Progression:
+        if increment > rules.max_relative_jump * max(weights):
+            ceilings = [
+                target + rules.rep_ceiling_margin if target is not None else rules.rep_ceiling_without_plan
+                for target in target_reps
+            ]
+            if not all(done >= ceiling for done, ceiling in zip(done_reps, ceilings, strict=True)):
+                more_reps = [min(done + 1, ceiling) for done, ceiling in zip(done_reps, ceilings, strict=True)]
+                return suggest(Action.INCREASE_REPS, Reason.JUMP_TOO_BIG, weights, more_reps)
+        return suggest(Action.INCREASE_LOAD, reason, [weight + increment for weight in weights])
 
     if stalled:
         return suggest(
             Action.DELOAD,
+            Reason.PLATEAU,
             [max(0.0, math.floor(weight * rules.deload_factor / increment) * increment) for weight in weights],
         )
 
-    heavier = [weight + increment for weight in weights]
-    if not any(planned_set.reps is not None for planned_set in planned):
+    if all(target is None for target in target_reps):
         if max_rpe is not None and max_rpe <= rules.easy_rpe:
-            return suggest(Action.INCREASE_LOAD, heavier)
-        return suggest(Action.INCREASE_REPS, weights)
+            return load_up(Reason.EASY_WITHOUT_PLAN)
+        return suggest(Action.INCREASE_REPS, Reason.WITHOUT_PLAN, weights)
 
     targets_hit = len(performed) >= len(planned) and all(
         planned_set.reps is None or performed_set.reps >= planned_set.reps
         for planned_set, performed_set in zip(planned, performed, strict=False)
     )
     if not targets_hit:
-        return suggest(Action.INCREASE_REPS, weights)
+        return suggest(Action.INCREASE_REPS, Reason.TARGETS_MISSED, weights)
     if max_rpe is None or max_rpe <= rules.max_rpe_to_progress:
-        return suggest(Action.INCREASE_LOAD, heavier)
-    return suggest(Action.HOLD, weights)
+        return load_up(Reason.TARGETS_HIT)
+    return suggest(Action.HOLD, Reason.TARGETS_HIT_HARD, weights)
 
 
 def _optional_int(value: Any) -> int | None:
@@ -148,21 +231,31 @@ def _planned_sets(log: TrainingLog) -> dict[tuple[str, str], tuple[PlannedSet, .
     return plans
 
 
-def recommend(log: TrainingLog, rules: ProgressionRules = DEFAULT_RULES) -> list[Recommendation]:
-    """Suggest the next session for every exercise, based on its most recent one."""
+def recommend(
+    log: TrainingLog, rules: ProgressionRules = DEFAULT_RULES, today: date | None = None
+) -> list[Recommendation]:
+    """Suggest the next session for every exercise, based on its most recent one.
+
+    Given ``today``, exercises last trained more than ``max_age_days`` before are left out: a lift
+    dropped from the routine months ago needs no next step.
+    """
     work = working_sets(log)
     if work.empty:
         return []
 
     plateaus = detect_plateaus(session_bests(work), window=rules.plateau_window)
     stalled_ids = set(plateaus.loc[plateaus["stalled"].astype(bool), "exercise_id"])
-    names = log.exercises.set_index("exercise_id")["name"].to_dict()
+    exercises = log.exercises.set_index("exercise_id")
     plans = _planned_sets(log)
+    oldest = None if today is None else today - timedelta(days=rules.max_age_days)
 
     recommendations = []
     for group_key, exercise_sets in work.groupby("exercise_id", sort=True):
         exercise_id = str(group_key)
         last_session = exercise_sets[exercise_sets["workout_id"] == exercise_sets["workout_id"].iloc[-1]]
+        last_performed_on = last_session["date"].iloc[0].date()
+        if oldest is not None and last_performed_on < oldest:
+            continue
         performed = tuple(
             PerformedSet(
                 reps=int(row["reps"]),
@@ -172,17 +265,104 @@ def recommend(log: TrainingLog, rules: ProgressionRules = DEFAULT_RULES) -> list
             for row in last_session.to_dict(orient="records")
         )
         planned = plans.get((str(last_session["routine_id"].iloc[0]), exercise_id), ())
-        action, suggested = decide_progression(
-            performed=performed, planned=planned, stalled=exercise_id in stalled_ids, rules=rules
+        known = exercise_id in exercises.index
+        increment = load_increment(
+            str(exercises.at[exercise_id, "equipment"]) if known else None,
+            str(exercises.at[exercise_id, "muscle_group"]) if known else None,
+            rules,
+        )
+        progression = decide_progression(
+            performed=performed,
+            planned=planned,
+            stalled=exercise_id in stalled_ids,
+            increment_kg=increment,
+            rules=rules,
         )
         recommendations.append(
             Recommendation(
                 exercise_id=exercise_id,
-                exercise_name=str(names.get(exercise_id, exercise_id)),
-                action=action,
+                exercise_name=str(exercises.at[exercise_id, "name"]) if known else exercise_id,
+                action=progression.action,
+                reason=progression.reason,
+                increment_kg=increment,
+                last_performed_on=last_performed_on,
                 last_sets=performed,
                 target_sets=planned,
-                suggested_sets=suggested,
+                suggested_sets=progression.suggested_sets,
             )
         )
     return recommendations
+
+
+@dataclass(frozen=True)
+class VolumeRules:
+    """Weekly hard sets per muscle. Around 10-20 is the range most hypertrophy studies support:
+    fewer leaves growth on the table, more mostly adds fatigue."""
+
+    min_hard_sets: int = 10
+    max_hard_sets: int = 20
+    # Complete weeks averaged (the current, unfinished one never counts).
+    weeks: int = 4
+    # Weeks of history needed before judging at all.
+    min_weeks: int = 2
+
+
+DEFAULT_VOLUME_RULES = VolumeRules()
+
+# The muscles a routine is built around. Smaller ones (calves, forearms, abs...) are trained on
+# purpose in very different amounts, so a fixed range would mostly produce noise for them.
+MAIN_MUSCLES: tuple[str, ...] = (
+    MuscleGroup.CHEST,
+    MuscleGroup.BACK,
+    MuscleGroup.SHOULDERS,
+    MuscleGroup.BICEPS,
+    MuscleGroup.TRICEPS,
+    MuscleGroup.QUADS,
+    MuscleGroup.HAMSTRINGS,
+    MuscleGroup.GLUTES,
+)
+
+
+@dataclass(frozen=True)
+class VolumeAdvice:
+    muscle_group: str
+    average_hard_sets: float
+    status: VolumeStatus
+    weeks: int
+
+
+def volume_advice(log: TrainingLog, today: date, rules: VolumeRules = DEFAULT_VOLUME_RULES) -> list[VolumeAdvice]:
+    """Main muscles whose average weekly hard sets fall outside the recommended range.
+
+    Only complete weeks since training started count, so a first week, or the current one half
+    done, never reads as too little.
+    """
+    work = working_sets(log)
+    if work.empty:
+        return []
+    current_week = today - timedelta(days=today.weekday())
+    first_date = work["date"].min().date()
+    first_week = first_date - timedelta(days=first_date.weekday())
+    weeks = [
+        week
+        for week in (current_week - timedelta(weeks=offset) for offset in range(1, rules.weeks + 1))
+        if week >= first_week
+    ]
+    if len(weeks) < rules.min_weeks:
+        return []
+
+    volume = weekly_volume_by_muscle(work, log.exercises)
+    in_window = volume[volume["week_start"].dt.date.isin(weeks)]
+    totals = in_window.groupby("muscle_group")["hard_sets"].sum()
+
+    advice = []
+    for muscle in MAIN_MUSCLES:
+        average = float(totals.get(muscle, 0)) / len(weeks)
+        if average < rules.min_hard_sets:
+            status = VolumeStatus.LOW
+        elif average > rules.max_hard_sets:
+            status = VolumeStatus.HIGH
+        else:
+            continue
+        advice.append(VolumeAdvice(str(muscle), round(average, 1), status, len(weeks)))
+    return advice

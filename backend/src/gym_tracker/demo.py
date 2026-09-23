@@ -18,8 +18,15 @@ import pandas as pd
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from gym_tracker.analysis import PerformedSet, PlannedSet, ProgressionRules, decide_progression, detect_plateaus
-from gym_tracker.catalog import seed_catalog
+from gym_tracker.analysis import (
+    PerformedSet,
+    PlannedSet,
+    ProgressionRules,
+    decide_progression,
+    detect_plateaus,
+    load_increment,
+)
+from gym_tracker.catalog import CATALOG, seed_catalog
 from gym_tracker.models import (
     BodyMeasurement,
     Exercise,
@@ -91,6 +98,8 @@ ROUTINES: dict[str, tuple[DemoLift, ...]] = {
     ),
 }
 
+CATALOG_BY_SLUG = {exercise.slug: exercise for exercise in CATALOG}
+
 ROUTINE_DESCRIPTIONS = {
     "Torso A": "Alterna con Torso B",
     "Torso B": "Alterna con Torso A",
@@ -103,6 +112,7 @@ class _LiftState:
     lift: DemoLift
     capacity_kg: float
     weights_kg: list[float]
+    increment_kg: float
     history: list[tuple[float, float]]  # (best e1RM, top weight) per session
 
 
@@ -130,7 +140,7 @@ def _simulate_sets(state: _LiftState, week: int, rng: random.Random, rules: Prog
 
     sets: list[WorkoutSet] = []
     if lift.warmup:
-        warmup_weight = _round_to(state.weights_kg[0] * 0.5, rules.load_increment_kg)
+        warmup_weight = _round_to(state.weights_kg[0] * 0.5, state.increment_kg)
         sets.append(WorkoutSet(set_number=1, reps=8, weight_kg=warmup_weight, rpe=None, is_warmup=True))
 
     performed: list[PerformedSet] = []
@@ -157,10 +167,14 @@ def _simulate_sets(state: _LiftState, week: int, rng: random.Random, rules: Prog
     planned = [
         PlannedSet(reps=reps, weight_kg=weight) for reps, weight in zip(lift.reps, lift.planned_weights, strict=True)
     ]
-    _, suggested = decide_progression(
-        performed=performed, planned=planned, stalled=bool(plateaus["stalled"].any()), rules=rules
+    progression = decide_progression(
+        performed=performed,
+        planned=planned,
+        stalled=bool(plateaus["stalled"].any()),
+        increment_kg=state.increment_kg,
+        rules=rules,
     )
-    state.weights_kg = [item.weight_kg or 0.0 for item in suggested]
+    state.weights_kg = [item.weight_kg or 0.0 for item in progression.suggested_sets]
     return sets
 
 
@@ -224,7 +238,9 @@ def seed_demo(
             weights = lift.planned_weights
             # Strong enough for the heaviest planned set with a couple of reps to spare.
             capacity = weights[-1] * (1 + (lift.reps[-1] + 2) / EPLEY_REPS_DIVISOR)
-            states[lift.slug] = _LiftState(lift, capacity, weights, history=[])
+            catalog_entry = CATALOG_BY_SLUG[lift.slug]
+            increment = load_increment(catalog_entry.equipment, catalog_entry.muscle_group, rules)
+            states[lift.slug] = _LiftState(lift, capacity, weights, increment, history=[])
         routines[name] = routine
         session.add(routine)
     session.flush()
