@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, apiFetch } from '@/lib/api'
 import { isOnline } from '@/lib/online'
 import type { User } from '@/lib/types'
@@ -67,14 +67,26 @@ export function useDemoLogin() {
   })
 }
 
+/** Forgets everything cached for the account that just left, so the next one starts clean. */
+function forgetSession(queryClient: QueryClient) {
+  saveCachedUser(null)
+  queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
+  queryClient.setQueryData(currentUserQueryKey, null)
+}
+
 export function useLogout() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: () => apiFetch<void>('/auth/logout', { method: 'POST' }),
-    onSuccess: () => {
-      saveCachedUser(null)
-      queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== 'auth' })
-      queryClient.setQueryData(currentUserQueryKey, null)
-    },
+    onSuccess: () => forgetSession(queryClient),
+  })
+}
+
+/** Deletes the account and all its data. The server asks for the password again to confirm. */
+export function useDeleteAccount() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (password: string) => apiFetch<void>('/auth/me', { method: 'DELETE', body: { password } }),
+    onSuccess: () => forgetSession(queryClient),
   })
 }

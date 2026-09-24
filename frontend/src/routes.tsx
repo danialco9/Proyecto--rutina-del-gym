@@ -1,5 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router'
 import { AppLayout } from '@/components/AppLayout'
+import { AccountPage } from '@/features/account/AccountPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
@@ -26,6 +27,7 @@ export const routes: RouteObject[] = [
           { path: 'rutinas/:routineId', element: <RoutineEditorPage /> },
           { path: 'medidas', element: <MeasurementsPage /> },
           { path: 'progreso', element: <ProgressPage /> },
+          { path: 'cuenta', element: <AccountPage /> },
         ],
       },
     ],
