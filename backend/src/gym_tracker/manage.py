@@ -4,6 +4,7 @@
 - ``uv run gym-admin reset-password --email someone@example.com``
 - ``uv run gym-admin seed-catalog``
 - ``uv run gym-admin seed-demo``
+- ``uv run gym-admin feedback``
 """
 
 from __future__ import annotations
@@ -13,9 +14,12 @@ import getpass
 import io
 import sys
 
+from sqlalchemy import select
+
 from gym_tracker.catalog import seed_catalog
 from gym_tracker.db import get_sessionmaker
 from gym_tracker.demo import DEMO_EMAIL, DEMO_PASSWORD, seed_demo
+from gym_tracker.models import Feedback, User
 from gym_tracker.users import (
     MIN_PASSWORD_LENGTH,
     UserAlreadyExistsError,
@@ -56,6 +60,23 @@ def _reset_password(parser: argparse.ArgumentParser, email: str) -> None:
         print(f"Contraseña cambiada: {user.email}")
 
 
+def _show_feedback(limit: int) -> None:
+    """Prints the latest comments sent from the app, newest first."""
+    query = (
+        select(Feedback.created_at, User.email, Feedback.page, Feedback.message)
+        .join(User, User.id == Feedback.user_id)
+        .order_by(Feedback.created_at.desc(), Feedback.id.desc())
+        .limit(limit)
+    )
+    with get_sessionmaker()() as session:
+        rows = session.execute(query).all()
+    if not rows:
+        print("Todavía no hay opiniones")
+    for created_at, email, page, message in rows:
+        print(f"{created_at:%Y-%m-%d %H:%M} · {email} · {page or '-'}")
+        print(f"  {message}\n")
+
+
 def _seed_catalog() -> None:
     with get_sessionmaker()() as session:
         count = seed_catalog(session)
@@ -82,6 +103,8 @@ def main(argv: list[str] | None = None) -> None:
     create.add_argument("--email", required=True)
     reset = commands.add_parser("reset-password", help="Cambia la contraseña de un usuario")
     reset.add_argument("--email", required=True)
+    feedback = commands.add_parser("feedback", help="Muestra las últimas opiniones enviadas desde la app")
+    feedback.add_argument("--limit", type=int, default=20)
     commands.add_parser("seed-catalog", help="Crea o actualiza el catálogo de ejercicios")
     demo = commands.add_parser("seed-demo", help="Crea o recrea la cuenta demo con entrenos simulados")
     demo.add_argument("--email", default=DEMO_EMAIL)
@@ -95,6 +118,8 @@ def main(argv: list[str] | None = None) -> None:
         _create_user(parser, args.email)
     elif args.command == "reset-password":
         _reset_password(parser, args.email)
+    elif args.command == "feedback":
+        _show_feedback(args.limit)
     elif args.command == "seed-demo":
         _seed_demo(args.email, args.password, args.weeks)
     else:

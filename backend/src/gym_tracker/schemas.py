@@ -6,7 +6,7 @@ from datetime import date, datetime
 from typing import ClassVar, Self
 from uuid import UUID
 
-from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from gym_tracker.analysis.recommendations import Action, Reason, VolumeStatus
 from gym_tracker.enums import Equipment, MuscleGroup
@@ -49,6 +49,18 @@ class LoginRequest(BaseModel):
 
 class DeleteAccountRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
+
+
+class FeedbackIn(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    page: str | None = Field(default=None, max_length=200)
+
+    @field_validator("message")
+    @classmethod
+    def not_blank(cls, value: str) -> str:
+        if not value.strip():
+            raise ValueError("The message is empty")
+        return value.strip()
 
 
 class RegisterRequest(BaseModel):
