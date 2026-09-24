@@ -50,6 +50,7 @@ docker compose up -d --wait               # from the repo root: start PostgreSQL
 uv run alembic upgrade head               # apply migrations
 uv run gym-admin seed-catalog             # load or update the exercise catalog
 uv run gym-admin create-user --email you@example.com
+uv run gym-admin reset-password --email you@example.com   # when a password is forgotten
 uv run gym-admin seed-demo                # optional: demo account with 12 weeks of data
 uv run uvicorn gym_tracker.main:create_app --factory --reload
 
