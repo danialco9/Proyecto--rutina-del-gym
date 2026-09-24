@@ -1,8 +1,10 @@
 import { Navigate, type RouteObject } from 'react-router'
 import { AppLayout } from '@/components/AppLayout'
 import { AccountPage } from '@/features/account/AccountPage'
+import { ForgotPasswordPage } from '@/features/auth/ForgotPasswordPage'
 import { LoginPage } from '@/features/auth/LoginPage'
 import { RegisterPage } from '@/features/auth/RegisterPage'
+import { ResetPasswordPage } from '@/features/auth/ResetPasswordPage'
 import { RequireAuth } from '@/features/auth/RequireAuth'
 import { HomePage } from '@/features/home/HomePage'
 import { MeasurementsPage } from '@/features/measurements/MeasurementsPage'
@@ -14,6 +16,8 @@ import { WorkoutPage } from '@/features/workout/WorkoutPage'
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
   { path: '/registro', element: <RegisterPage /> },
+  { path: '/recuperar', element: <ForgotPasswordPage /> },
+  { path: '/restablecer', element: <ResetPasswordPage /> },
   {
     element: <RequireAuth />,
     children: [
