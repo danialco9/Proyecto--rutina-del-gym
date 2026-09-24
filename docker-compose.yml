@@ -37,6 +37,8 @@ services:
       GYM_DEMO_ENABLED: "true"
       GYM_SEED_DEMO: "true"
       GYM_TIMEZONE: ${GYM_TIMEZONE:-Europe/Madrid}
+      # No Brevo key here: password reset emails are written to the API log (`docker compose logs api`).
+      GYM_APP_URL: http://localhost:8080
     ports:
       - "${API_PORT:-8000}:8000"
     healthcheck:

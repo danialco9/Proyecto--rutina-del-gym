@@ -179,6 +179,18 @@ class BodyMeasurement(Base):
     notes: Mapped[str | None] = mapped_column(Text)
 
 
+class PasswordResetToken(Base):
+    """A single-use link to choose a new password. Only a hash of the emailed token is stored."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class Feedback(Base):
     """A comment sent from the app, read by the developer with ``gym-admin feedback``."""
 

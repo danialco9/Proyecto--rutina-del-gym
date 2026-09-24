@@ -68,8 +68,12 @@ Live at https://gym-tracker-two-beta.vercel.app.
 
 ## Resetting a user's password
 
-There is no reset by email yet. When someone forgets their password, set a new one from your
-machine against the production database and send it to them:
+People reset it themselves from **¿Olvidaste tu contraseña?** on the login page: the API emails a
+single-use link (30 minutes) through Brevo, once `GYM_BREVO_API_KEY` and `GYM_MAIL_FROM` are set.
+Without them the email is written to the API log instead.
+
+If the email never arrives, set a new password from your machine against the production database
+and send it to them:
 
 ```bash
 cd backend
@@ -92,6 +96,9 @@ Neon connection string is under **Connect** in the Neon console (the same value 
 | `GYM_DEMO_EMAIL` | `demo@gymtracker.dev` (default) | Demo account |
 | `GYM_TIMEZONE` | `Europe/Madrid` | Calendar days and weeks in the analytics |
 | `GYM_RATE_LIMIT_STORAGE` | `memory://` (default) | Use `redis://…` with several instances |
+| `GYM_APP_URL` | `https://gym-tracker-two-beta.vercel.app` | Links in emails |
+| `GYM_BREVO_API_KEY` | set in the dashboard, never in the repo | Sends password reset emails ([Brevo](https://www.brevo.com), free plan) |
+| `GYM_MAIL_FROM` | a sender verified in Brevo | From address of those emails |
 
 ## Running the production image locally
 

@@ -68,6 +68,15 @@ class RegisterRequest(BaseModel):
     password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=128)
 
 
+class PasswordResetRequest(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetConfirm(BaseModel):
+    token: str = Field(min_length=1, max_length=200)
+    password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=128)
+
+
 class UserRead(ORMModel):
     id: int
     email: EmailStr

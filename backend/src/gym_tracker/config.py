@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     demo_email: str = "demo@gymtracker.dev"
     # Calendar days and weeks in the analytics (workout dates, "today") follow this IANA time zone.
     timezone: str = "Europe/Madrid"
+    # Where the web app lives, for the links in emails (e.g. the password reset page).
+    app_url: str = "http://localhost:5173"
+    # Emails go out through Brevo when a key is set; without one they are written to the log.
+    brevo_api_key: SecretStr | None = None
+    mail_from: str | None = None
+    mail_from_name: str = "Gym Tracker"
+    password_reset_ttl_minutes: int = 30
 
     @field_validator("database_url")
     @classmethod
