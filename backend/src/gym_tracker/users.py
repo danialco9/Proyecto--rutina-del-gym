@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from gym_tracker.models import User
+from gym_tracker.models import Routine, User, Workout
 from gym_tracker.security import hash_password, verify_password
 
 MIN_PASSWORD_LENGTH = 8
@@ -50,6 +50,18 @@ def set_password(session: Session, *, email: str, password: str) -> User:
     user.password_hash = hash_password(password)
     session.flush()
     return user
+
+
+def delete_user(session: Session, user: User) -> None:
+    """Delete the account and everything in it: routines, workouts, measurements, own exercises.
+
+    Workouts and routines go first: their sets point at exercises with RESTRICT (so a used exercise
+    is never deleted by accident), which would stop the cascade from the user to their own exercises.
+    """
+    session.execute(delete(Workout).where(Workout.user_id == user.id))
+    session.execute(delete(Routine).where(Routine.user_id == user.id))
+    session.execute(delete(User).where(User.id == user.id))
+    session.expunge(user)
 
 
 def authenticate(session: Session, *, email: str, password: str) -> User | None:
