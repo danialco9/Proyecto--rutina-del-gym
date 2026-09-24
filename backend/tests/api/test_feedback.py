@@ -1,4 +1,5 @@
 from contextlib import nullcontext
+from datetime import UTC, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -6,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from gym_tracker import manage
+from gym_tracker.config import Settings
 from gym_tracker.models import Feedback, User
 from tests.api.conftest import TEST_EMAIL, TEST_PASSWORD
 
@@ -46,17 +48,27 @@ def test_goes_with_the_account(auth_client: TestClient, session: Session) -> Non
     assert stored(session) == []
 
 
-def test_admin_command_shows_the_latest_first(
-    monkeypatch: pytest.MonkeyPatch, session: Session, user: User, capsys: pytest.CaptureFixture[str]
+def test_admin_command_shows_the_latest_first_in_local_time(
+    monkeypatch: pytest.MonkeyPatch,
+    session: Session,
+    settings: Settings,
+    user: User,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
     # `nullcontext` keeps the command from closing, and so rolling back, the test's session.
     monkeypatch.setattr(manage, "get_sessionmaker", lambda: lambda: nullcontext(session))
-    session.add_all([Feedback(user_id=user.id, message="Primera"), Feedback(user_id=user.id, message="Segunda")])
+    monkeypatch.setattr(manage, "get_settings", lambda: settings)
+    session.add_all(
+        [
+            Feedback(user_id=user.id, message="Primera", created_at=datetime(2026, 9, 24, 9, 0, tzinfo=UTC)),
+            Feedback(user_id=user.id, message="Segunda", created_at=datetime(2026, 9, 24, 10, 42, tzinfo=UTC)),
+        ]
+    )
     session.flush()
 
     manage.main(["feedback", "--limit", "1"])
 
     out = capsys.readouterr().out
-    assert f"· {TEST_EMAIL} · -" in out
+    assert f"2026-09-24 12:42 · {TEST_EMAIL} · -" in out  # Europe/Madrid, UTC+2 in September
     assert "Segunda" in out
     assert "Primera" not in out

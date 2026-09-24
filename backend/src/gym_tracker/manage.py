@@ -13,10 +13,12 @@ import argparse
 import getpass
 import io
 import sys
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
 from gym_tracker.catalog import seed_catalog
+from gym_tracker.config import get_settings
 from gym_tracker.db import get_sessionmaker
 from gym_tracker.demo import DEMO_EMAIL, DEMO_PASSWORD, seed_demo
 from gym_tracker.models import Feedback, User
@@ -72,8 +74,9 @@ def _show_feedback(limit: int) -> None:
         rows = session.execute(query).all()
     if not rows:
         print("Todavía no hay opiniones")
+    timezone = ZoneInfo(get_settings().timezone)
     for created_at, email, page, message in rows:
-        print(f"{created_at:%Y-%m-%d %H:%M} · {email} · {page or '-'}")
+        print(f"{created_at.astimezone(timezone):%Y-%m-%d %H:%M} · {email} · {page or '-'}")
         print(f"  {message}\n")
 
 
