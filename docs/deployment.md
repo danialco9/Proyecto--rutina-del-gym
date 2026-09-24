@@ -40,6 +40,9 @@ If the logs show a connection to `localhost:5432`, `GYM_DATABASE_URL` is missing
 refuses to start without it.
 
 The free plan sleeps after 15 minutes without traffic; the first request then takes about a minute.
+A [cron-job.org](https://cron-job.org) job calls `/api/health` every 10 minutes to keep it awake
+(about 720 of the 750 free instance hours a month), and the app says "Arrancando el servidor…" if a
+request still takes longer than 5 seconds.
 
 ## 3. Demo account
 
@@ -62,6 +65,21 @@ Live at https://gym-tracker-two-beta.vercel.app.
 2. Root directory: `frontend` (framework, install and build commands come from `vercel.json`).
 3. Environment variable `VITE_DEMO_ENABLED=true` to show the demo button.
 4. Deploy, open the site and try **Probar la demo** (wait for the API to wake up the first time).
+
+## Resetting a user's password
+
+There is no reset by email yet. When someone forgets their password, set a new one from your
+machine against the production database and send it to them:
+
+```bash
+cd backend
+GYM_DATABASE_URL='<Neon connection string>' GYM_JWT_SECRET=unused-by-admin-commands \
+  uv run gym-admin reset-password --email someone@example.com
+```
+
+It asks for the new password twice without echoing it, so it stays out of the shell history. The
+Neon connection string is under **Connect** in the Neon console (the same value as the
+`PRODUCTION_DATABASE_URL` secret).
 
 ## Environment variables (API)
 

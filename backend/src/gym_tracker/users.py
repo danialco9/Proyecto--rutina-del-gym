@@ -18,6 +18,10 @@ class UserAlreadyExistsError(Exception):
     pass
 
 
+class UserNotFoundError(Exception):
+    pass
+
+
 def normalize_email(email: str) -> str:
     return email.strip().lower()
 
@@ -33,6 +37,17 @@ def create_user(session: Session, *, email: str, password: str) -> User:
         raise UserAlreadyExistsError(email)
     user = User(email=normalize_email(email), password_hash=hash_password(password))
     session.add(user)
+    session.flush()
+    return user
+
+
+def set_password(session: Session, *, email: str, password: str) -> User:
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"Password must be at least {MIN_PASSWORD_LENGTH} characters")
+    user = get_user_by_email(session, email)
+    if user is None:
+        raise UserNotFoundError(email)
+    user.password_hash = hash_password(password)
     session.flush()
     return user
 
