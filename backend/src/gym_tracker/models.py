@@ -1,4 +1,4 @@
-"""Database models for users, exercises, routines, workouts and body measurements."""
+"""Database models for users, exercises, routines, workouts, body measurements and feedback."""
 
 from __future__ import annotations
 
@@ -177,3 +177,16 @@ class BodyMeasurement(Base):
     arm_cm: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
     thigh_cm: Mapped[Decimal | None] = mapped_column(Numeric(5, 1))
     notes: Mapped[str | None] = mapped_column(Text)
+
+
+class Feedback(Base):
+    """A comment sent from the app, read by the developer with ``gym-admin feedback``."""
+
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    message: Mapped[str] = mapped_column(Text)
+    # The screen it was sent from, e.g. "/entrenar", to know what the comment is about.
+    page: Mapped[str | None] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

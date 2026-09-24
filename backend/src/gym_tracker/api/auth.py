@@ -21,9 +21,16 @@ from gym_tracker.rate_limit import (
     REGISTER_PER_CLIENT,
     Check,
 )
-from gym_tracker.schemas import LoginRequest, RegisterRequest, UserRead
-from gym_tracker.security import create_access_token
-from gym_tracker.users import UserAlreadyExistsError, authenticate, create_user, get_user_by_email, normalize_email
+from gym_tracker.schemas import DeleteAccountRequest, LoginRequest, RegisterRequest, UserRead
+from gym_tracker.security import create_access_token, verify_password
+from gym_tracker.users import (
+    UserAlreadyExistsError,
+    authenticate,
+    create_user,
+    delete_user,
+    get_user_by_email,
+    normalize_email,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -102,11 +109,44 @@ def demo_login(
     _set_session_cookie(response, user.id, settings)
 
 
+def _clear_session_cookie(response: Response, settings: Settings) -> None:
+    response.delete_cookie(ACCESS_TOKEN_COOKIE, httponly=True, secure=settings.cookie_secure, samesite="lax")
+
+
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 def logout(response: Response, settings: SettingsDep) -> None:
-    response.delete_cookie(ACCESS_TOKEN_COOKIE, httponly=True, secure=settings.cookie_secure, samesite="lax")
+    _clear_session_cookie(response, settings)
 
 
 @router.get("/me")
 def read_current_user(user: CurrentUser) -> UserRead:
     return UserRead.model_validate(user)
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    payload: DeleteAccountRequest,
+    response: Response,
+    *,
+    user: CurrentUser,
+    session: SessionDep,
+    settings: SettingsDep,
+    limiter: RateLimiterDep,
+    client: ClientAddress,
+) -> None:
+    """Delete the signed-in account and all its data, after confirming the password.
+
+    A wrong password answers 403, not 401: the session is still valid. Attempts count against the
+    same limits as logging in, so this is no side door for guessing passwords.
+    """
+    if user.email == normalize_email(settings.demo_email):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="The demo account cannot be deleted")
+    limiter.hit(
+        Check(LOGIN_PER_CLIENT_AND_EMAIL, ("login", client, user.email)),
+        Check(LOGIN_PER_EMAIL, ("login", user.email)),
+    )
+    if not verify_password(payload.password, user.password_hash):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Incorrect password")
+    delete_user(session, user)
+    session.commit()
+    _clear_session_cookie(response, settings)

@@ -137,7 +137,8 @@ describe('Offline queue', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
     const { user } = renderRoute('/')
 
-    await user.click(await screen.findByRole('button', { name: /Salir/ }))
+    await user.click(await screen.findByRole('link', { name: 'Cuenta' }))
+    await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }))
 
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining('entrenos sin subir'))
     expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument()

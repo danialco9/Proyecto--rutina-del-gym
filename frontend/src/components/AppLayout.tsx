@@ -1,18 +1,15 @@
 import {
   ChartLineIcon,
+  CircleUserIcon,
   ClipboardListIcon,
   DumbbellIcon,
   HouseIcon,
-  LogOutIcon,
   ScaleIcon,
 } from 'lucide-react'
-import { NavLink, Outlet, useNavigate } from 'react-router'
+import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { OfflineNotice } from '@/components/OfflineNotice'
-import { Button } from '@/components/ui/button'
-import { useLogout } from '@/features/auth/queries'
-import { loadDraft, saveDraft } from '@/features/workout/draft'
-import { clearOutbox } from '@/features/workout/outbox'
-import { useOutbox, useOutboxSync } from '@/features/workout/useOutbox'
+import { buttonVariants } from '@/components/ui/button'
+import { useOutboxSync } from '@/features/workout/useOutbox'
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
@@ -32,31 +29,8 @@ function Wordmark({ className }: { className?: string }) {
 }
 
 export function AppLayout() {
-  const logout = useLogout()
-  const navigate = useNavigate()
-  const queued = useOutbox()
+  const { pathname } = useLocation()
   useOutboxSync()
-
-  const signOut = () => {
-    // Nothing unsent may be left on the device for the next account that signs in.
-    const warning =
-      loadDraft() !== null
-        ? 'Tienes un entreno sin guardar. Si cierras sesión se descartará. ¿Cerrar sesión?'
-        : queued.length > 0
-          ? 'Tienes entrenos sin subir que están solo en este móvil. Si cierras sesión se perderán. ¿Cerrar sesión?'
-          : null
-    if (warning !== null && !window.confirm(warning)) {
-      return
-    }
-    const userId = queued[0]?.userId
-    logout.mutate(undefined, {
-      onSuccess: () => {
-        saveDraft(null)
-        if (userId !== undefined) clearOutbox(userId)
-        navigate('/login', { replace: true })
-      },
-    })
-  }
 
   return (
     <div className="min-h-dvh lg:flex">
@@ -93,13 +67,18 @@ export function AppLayout() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* One sign-out control on every size: the sidebar already carries the wordmark from lg up. */}
+        {/* One account link on every size: the sidebar already carries the wordmark from lg up. */}
         <header className="flex items-center justify-between border-b px-4 py-3 lg:justify-end lg:px-8">
           <Wordmark className="lg:hidden" />
-          <Button variant="ghost" size="sm" onClick={signOut} disabled={logout.isPending}>
-            <LogOutIcon />
-            Salir
-          </Button>
+          {/* The screen it was opened from goes along, so feedback says what it is about. */}
+          <Link
+            to="/cuenta"
+            state={pathname === '/cuenta' ? undefined : { from: pathname }}
+            className={buttonVariants({ variant: 'ghost', size: 'sm' })}
+          >
+            <CircleUserIcon />
+            Cuenta
+          </Link>
         </header>
 
         <OfflineNotice />

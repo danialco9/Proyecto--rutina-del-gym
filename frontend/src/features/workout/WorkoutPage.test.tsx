@@ -245,12 +245,13 @@ describe('Session', () => {
     const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
     const { user, router } = renderRoute('/entrenar')
 
-    await user.click(await screen.findByRole('button', { name: /Salir/ }))
+    await user.click(await screen.findByRole('link', { name: 'Cuenta' }))
+    await user.click(await screen.findByRole('button', { name: 'Cerrar sesión' }))
     expect(confirm).toHaveBeenCalledTimes(1)
     expect(calls.some((call) => call.path === '/auth/logout')).toBe(false)
     expect(window.localStorage.getItem(DRAFT_STORAGE_KEY)).not.toBeNull()
 
-    await user.click(screen.getByRole('button', { name: /Salir/ }))
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
 
     expect(await screen.findByRole('button', { name: 'Entrar' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/login')
