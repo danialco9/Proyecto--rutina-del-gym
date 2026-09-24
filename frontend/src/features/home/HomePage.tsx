@@ -11,6 +11,7 @@ import { Link } from 'react-router'
 import heroImage from '@/assets/hero-squat.webp'
 import { QueryStatus } from '@/components/QueryStatus'
 import { buttonVariants } from '@/components/ui/button'
+import { GettingStarted } from '@/features/home/GettingStarted'
 import { useProgressOverview } from '@/features/progress/queries'
 import { loadDraft } from '@/features/workout/draft'
 import { PendingWorkouts } from '@/features/workout/PendingWorkouts'
@@ -170,6 +171,14 @@ export function HomePage() {
       </section>
 
       <PendingWorkouts />
+
+      {routines.data !== undefined && workouts.data !== undefined && (
+        <GettingStarted
+          hasRoutine={routines.data.length > 0}
+          hasWorkout={workouts.data.length > 0}
+          hasWeight={(overview.data?.body_weight.entries.length ?? 0) > 0}
+        />
+      )}
 
       {overview.data !== undefined && (
         <section className="space-y-3">
