@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from gym_tracker.config import Settings, get_settings
 from gym_tracker.db import get_session
+from gym_tracker.mail import Mailer, get_mailer
 from gym_tracker.models import User
 from gym_tracker.rate_limit import RateLimiter
 from gym_tracker.security import decode_access_token
@@ -43,6 +44,13 @@ def get_rate_limiter(request: Request) -> RateLimiter:
 
 
 RateLimiterDep = Annotated[RateLimiter, Depends(get_rate_limiter)]
+
+
+def get_app_mailer(settings: SettingsDep) -> Mailer:
+    return get_mailer(settings)
+
+
+MailerDep = Annotated[Mailer, Depends(get_app_mailer)]
 
 
 def get_client_address(request: Request) -> str:

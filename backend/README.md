@@ -9,7 +9,7 @@ FastAPI service and analytics engine for the gym tracker.
   | Resource | Endpoints |
   | --- | --- |
   | Health | `GET /health` |
-  | Auth | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `DELETE /auth/me` (with the password) |
+  | Auth | `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`, `DELETE /auth/me` (with the password), `POST /auth/password-reset`, `POST /auth/password-reset/confirm` |
   | Exercises | `GET /exercises?muscle_group=&q=`, `GET /exercises/{id}`, `POST /exercises`, `PATCH /exercises/{id}`, `DELETE /exercises/{id}` |
   | Routines | `GET /routines`, `GET /routines/{id}`, `POST /routines`, `PUT /routines/{id}`, `DELETE /routines/{id}` |
   | Workouts | `GET /workouts?limit=&offset=`, `GET /workouts/{id}`, `POST /workouts`, `PUT /workouts/{id}`, `DELETE /workouts/{id}`, `POST /workouts/{id}/sets`, `DELETE /workouts/{id}/sets/{set_id}` |

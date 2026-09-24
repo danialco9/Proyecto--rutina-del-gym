@@ -104,6 +104,14 @@ export function LoginPage() {
           error={errors.password?.message}
           {...register('password')}
         />
+        <p className="-mt-2 text-right text-sm">
+          <Link
+            to="/recuperar"
+            className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </p>
         {errorMessage && (
           <Alert variant="destructive">
             <AlertDescription>{errorMessage}</AlertDescription>

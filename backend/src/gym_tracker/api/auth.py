@@ -2,26 +2,41 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Response, status
+import logging
+from datetime import UTC, datetime, timedelta
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Response, status
 
 from gym_tracker.api.common import commit_or_conflict
 from gym_tracker.api.deps import (
     ACCESS_TOKEN_COOKIE,
     ClientAddress,
     CurrentUser,
+    MailerDep,
     RateLimiterDep,
     SessionDep,
     SettingsDep,
 )
 from gym_tracker.config import Settings
+from gym_tracker.mail import Email, Mailer
+from gym_tracker.password_reset import create_reset_token, reset_email, reset_password
 from gym_tracker.rate_limit import (
     DEMO_PER_CLIENT,
     LOGIN_PER_CLIENT_AND_EMAIL,
     LOGIN_PER_EMAIL,
+    PASSWORD_RESET_PER_CLIENT,
+    PASSWORD_RESET_PER_EMAIL,
     REGISTER_PER_CLIENT,
     Check,
 )
-from gym_tracker.schemas import DeleteAccountRequest, LoginRequest, RegisterRequest, UserRead
+from gym_tracker.schemas import (
+    DeleteAccountRequest,
+    LoginRequest,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+    RegisterRequest,
+    UserRead,
+)
 from gym_tracker.security import create_access_token, verify_password
 from gym_tracker.users import (
     UserAlreadyExistsError,
@@ -33,6 +48,7 @@ from gym_tracker.users import (
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+logger = logging.getLogger(__name__)
 
 EMAIL_TAKEN = "An account with this email already exists"
 
@@ -107,6 +123,63 @@ def demo_login(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Demo not available")
     limiter.hit(Check(DEMO_PER_CLIENT, ("demo", client)))
     _set_session_cookie(response, user.id, settings)
+
+
+def _send_quietly(mailer: Mailer, email: Email) -> None:
+    try:
+        mailer.send(email)
+    except Exception:
+        # The answer went out already and must not depend on the email: log it and move on.
+        logger.exception("Could not send the password reset email")
+
+
+@router.post("/password-reset", status_code=status.HTTP_204_NO_CONTENT)
+def request_password_reset(
+    payload: PasswordResetRequest,
+    background: BackgroundTasks,
+    *,
+    session: SessionDep,
+    settings: SettingsDep,
+    mailer: MailerDep,
+    limiter: RateLimiterDep,
+    client: ClientAddress,
+) -> None:
+    """Email a link to choose a new password.
+
+    The answer is the same whether or not the account exists, so this cannot tell which emails are
+    registered; the email, by far the slowest part, goes out after the answer, so the timing does
+    not give it away either. The demo account has no real inbox and gets no email.
+    """
+    email = normalize_email(payload.email)
+    limiter.hit(
+        Check(PASSWORD_RESET_PER_CLIENT, ("password-reset", client)),
+        Check(PASSWORD_RESET_PER_EMAIL, ("password-reset", email)),
+    )
+    user = get_user_by_email(session, email)
+    if user is None or user.email == normalize_email(settings.demo_email):
+        return
+    ttl = timedelta(minutes=settings.password_reset_ttl_minutes)
+    token = create_reset_token(session, user, now=datetime.now(UTC), ttl=ttl)
+    session.commit()
+    # In the fragment, the token never reaches a server log or a Referer header.
+    link = f"{settings.app_url.rstrip('/')}/restablecer#token={token}"
+    background.add_task(_send_quietly, mailer, reset_email(user.email, link, settings.password_reset_ttl_minutes))
+
+
+@router.post("/password-reset/confirm", status_code=status.HTTP_204_NO_CONTENT)
+def confirm_password_reset(
+    payload: PasswordResetConfirm,
+    *,
+    session: SessionDep,
+    limiter: RateLimiterDep,
+    client: ClientAddress,
+) -> None:
+    """Set the new password from an emailed link. Every link of that account stops working."""
+    limiter.hit(Check(PASSWORD_RESET_PER_CLIENT, ("password-reset-confirm", client)))
+    user = reset_password(session, payload.token, payload.password, now=datetime.now(UTC))
+    if user is None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Invalid or expired link")
+    session.commit()
 
 
 def _clear_session_cookie(response: Response, settings: Settings) -> None:

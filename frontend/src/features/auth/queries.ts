@@ -82,6 +82,21 @@ export function useLogout() {
   })
 }
 
+/** Asks for a reset link by email. The server answers the same whether the account exists or not. */
+export function useRequestPasswordReset() {
+  return useMutation({
+    mutationFn: (email: string) =>
+      apiFetch<void>('/auth/password-reset', { method: 'POST', body: { email } }),
+  })
+}
+
+export function useConfirmPasswordReset() {
+  return useMutation({
+    mutationFn: (reset: { token: string; password: string }) =>
+      apiFetch<void>('/auth/password-reset/confirm', { method: 'POST', body: reset }),
+  })
+}
+
 /** Deletes the account and all its data. The server asks for the password again to confirm. */
 export function useDeleteAccount() {
   const queryClient = useQueryClient()

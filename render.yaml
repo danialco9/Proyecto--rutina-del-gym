@@ -24,3 +24,10 @@ services:
         value: "true"
       - key: GYM_TIMEZONE
         value: Europe/Madrid
+      # Password reset emails: links point at the web app, and go out through Brevo.
+      - key: GYM_APP_URL
+        value: https://gym-tracker-two-beta.vercel.app
+      - key: GYM_BREVO_API_KEY
+        sync: false
+      - key: GYM_MAIL_FROM
+        sync: false
