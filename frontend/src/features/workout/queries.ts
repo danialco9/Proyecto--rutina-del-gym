@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { progressKeys } from '@/features/progress/queries'
 import { apiFetch } from '@/lib/api'
-import type { Dictation, Exercise, LastSession, Routine, Workout, WorkoutIn } from '@/lib/types'
+import type { Dictation, Exercise, ExerciseIn, LastSession, Routine, Workout, WorkoutIn } from '@/lib/types'
 
 export const queryKeys = {
   exercises: ['exercises'] as const,
@@ -56,6 +56,22 @@ export function useSaveWorkout() {
         queryClient.invalidateQueries({ queryKey: queryKeys.exercises }),
         queryClient.invalidateQueries({ queryKey: progressKeys.all }),
       ]),
+  })
+}
+
+/** Creates one of the user's own exercises and adds it to the cached list, so pickers show it at once. */
+export function useCreateExercise() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (exercise: ExerciseIn) =>
+      apiFetch<Exercise>('/exercises', { method: 'POST', body: exercise }),
+    // Fail at once with no connection instead of waiting paused with the button saying "Creando…".
+    networkMode: 'always',
+    onSuccess: (created) => {
+      queryClient.setQueryData<Exercise[]>(queryKeys.exercises, (current) => current && [...current, created])
+      // Not awaited: the new exercise is already in the cache, so it can be added without waiting.
+      void queryClient.invalidateQueries({ queryKey: queryKeys.exercises })
+    },
   })
 }
 

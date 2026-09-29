@@ -34,6 +34,8 @@ export interface User {
   created_at: string
 }
 
+export type ExerciseIn = Pick<Exercise, 'name' | 'muscle_group' | 'equipment'>
+
 export interface Exercise {
   id: number
   slug: string
