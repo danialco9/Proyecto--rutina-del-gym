@@ -36,6 +36,18 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
+        // Exercise drawings are not part of the shell: each one is cached the first time it is shown.
+        globIgnores: ['exercise-art/**'],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith('/exercise-art/'),
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'exercise-art',
+              expiration: { maxEntries: 400 },
+            },
+          },
+        ],
         cleanupOutdatedCaches: true,
         navigateFallback: '/index.html',
         // A navigation to /api must reach the network, not the cached shell.
