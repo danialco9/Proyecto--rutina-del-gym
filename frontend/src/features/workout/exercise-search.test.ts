@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { Exercise } from '@/lib/types'
-import { filterExercises } from './exercise-search'
+import type { Exercise, Workout } from '@/lib/types'
+import { applyFilters, type ExerciseFilters, filterExercises, recentExercises } from './exercise-search'
 
 function exercise(
   id: number,
@@ -39,5 +39,52 @@ describe('filterExercises', () => {
   it('matches muscle group and equipment labels', () => {
     expect(names('pecho')).toEqual(['Jalón al pecho', 'Press banca con barra'])
     expect(names('maquina prensa')).toEqual(['Prensa de piernas'])
+  })
+})
+
+describe('applyFilters', () => {
+  const filtered = (filters: ExerciseFilters) => applyFilters(EXERCISES, filters).map((item) => item.name)
+
+  it('keeps everything without filters', () => {
+    expect(filtered({ muscle: null, equipment: null })).toHaveLength(3)
+  })
+
+  it('filters by primary muscle, not by words in the name', () => {
+    // "Jalón al pecho" mentions the chest but trains the back.
+    expect(filtered({ muscle: 'chest', equipment: null })).toEqual(['Press banca con barra'])
+  })
+
+  it('combines muscle and equipment', () => {
+    expect(filtered({ muscle: 'quads', equipment: 'machine' })).toEqual(['Prensa de piernas'])
+    expect(filtered({ muscle: 'quads', equipment: 'barbell' })).toEqual([])
+  })
+})
+
+describe('recentExercises', () => {
+  const workout = (id: number, exerciseIds: number[]): Workout => ({
+    id,
+    routine_id: null,
+    started_at: '2026-09-20T10:00:00Z',
+    ended_at: null,
+    notes: null,
+    sets: exerciseIds.map((exercise_id, index) => ({
+      id: id * 100 + index,
+      exercise_id,
+      set_number: index + 1,
+      reps: 10,
+      weight_kg: 50,
+      rpe: null,
+      is_warmup: false,
+    })),
+  })
+
+  it('lists each exercise once, newest workout first', () => {
+    const recent = recentExercises([workout(2, [3, 3, 1]), workout(1, [2, 3])], EXERCISES)
+
+    expect(recent.map((item) => item.id)).toEqual([3, 1, 2])
+  })
+
+  it('stops at the limit and skips exercises that are no longer in the catalog', () => {
+    expect(recentExercises([workout(1, [99, 2, 1, 3])], EXERCISES, 2).map((item) => item.id)).toEqual([2, 1])
   })
 })
