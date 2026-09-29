@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react'
-import { ArrowLeftIcon, ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react'
+import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, SearchIcon, XIcon } from 'lucide-react'
 import { cn } from 'cn'
 import { QueryStatus } from '@/components/QueryStatus'
 import { Button } from '@/components/ui/button'
@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '@/lib/labels'
 import type { Equipment, Exercise, MuscleGroup } from '@/lib/types'
+import { ExerciseInfoSheet } from './ExerciseInfoSheet'
 import { ExerciseThumbnail } from './ExerciseThumbnail'
 import { applyFilters, type ExerciseFilters, filterExercises, recentExercises } from './exercise-search'
 import { useExercises, useRecentWorkouts } from './queries'
@@ -40,6 +41,7 @@ function PickerBody({ onSelect }: Pick<ExercisePickerProps, 'onSelect'>) {
   const [search, setSearch] = useState('')
   const [filters, setFilters] = useState<ExerciseFilters>(NO_FILTERS)
   const [openFilter, setOpenFilter] = useState<FilterKind | null>(null)
+  const [info, setInfo] = useState<Exercise | null>(null)
   const exercises = useExercises()
   // Shares the home screen's query; if it fails, the picker simply shows no recents.
   const workouts = useRecentWorkouts()
@@ -107,7 +109,9 @@ function PickerBody({ onSelect }: Pick<ExercisePickerProps, 'onSelect'>) {
           error="No se pudo cargar el catálogo de ejercicios."
           className="m-4 w-auto"
         />
-        {recent.length > 0 && <ExerciseSection title="Recientes" exercises={recent} onSelect={onSelect} />}
+        {recent.length > 0 && (
+          <ExerciseSection title="Recientes" exercises={recent} onSelect={onSelect} onInfo={setInfo} />
+        )}
         {exercises.isSuccess &&
           (results.length === 0 ? (
             <p className="text-muted-foreground px-4 py-6 text-sm">No hay ejercicios que coincidan.</p>
@@ -120,9 +124,19 @@ function PickerBody({ onSelect }: Pick<ExercisePickerProps, 'onSelect'>) {
               }
               exercises={results}
               onSelect={onSelect}
+              onInfo={setInfo}
             />
           ))}
       </div>
+
+      <ExerciseInfoSheet
+        exercise={info}
+        onClose={() => setInfo(null)}
+        onAdd={(exercise) => {
+          setInfo(null)
+          onSelect(exercise)
+        }}
+      />
     </>
   )
 }
@@ -244,9 +258,10 @@ interface ExerciseSectionProps {
   title: string
   exercises: Exercise[]
   onSelect: (exercise: Exercise) => void
+  onInfo: (exercise: Exercise) => void
 }
 
-function ExerciseSection({ title, exercises, onSelect }: ExerciseSectionProps) {
+function ExerciseSection({ title, exercises, onSelect, onInfo }: ExerciseSectionProps) {
   const headingId = useId()
   return (
     <section aria-labelledby={headingId}>
@@ -254,24 +269,40 @@ function ExerciseSection({ title, exercises, onSelect }: ExerciseSectionProps) {
         {title}
       </h3>
       <ul>
-        {exercises.map((exercise) => (
-          <li key={exercise.id}>
-            <button
-              type="button"
-              className="hover:bg-muted flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors"
-              onClick={() => onSelect(exercise)}
-            >
-              <ExerciseThumbnail exercise={exercise} />
-              <span className="min-w-0">
-                <span className="block font-medium">{exercise.name}</span>
-                <span className="text-muted-foreground block text-xs">
-                  {MUSCLE_GROUP_LABELS[exercise.muscle_group]}
-                  {exercise.equipment && ` · ${EQUIPMENT_LABELS[exercise.equipment]}`}
+        {exercises.map((exercise) => {
+          const nameId = `${headingId}-${exercise.id}`
+          return (
+            <li key={exercise.id} className="hover:bg-muted flex items-center pr-2 transition-colors">
+              <button
+                type="button"
+                className="flex min-w-0 flex-1 items-center gap-3 py-2.5 pl-4 text-left"
+                onClick={() => onSelect(exercise)}
+              >
+                <ExerciseThumbnail exercise={exercise} />
+                <span className="min-w-0">
+                  <span id={nameId} className="block font-medium">
+                    {exercise.name}
+                  </span>
+                  <span className="text-muted-foreground block text-xs">
+                    {MUSCLE_GROUP_LABELS[exercise.muscle_group]}
+                    {exercise.equipment && ` · ${EQUIPMENT_LABELS[exercise.equipment]}`}
+                  </span>
                 </span>
-              </span>
-            </button>
-          </li>
-        ))}
+              </button>
+              {/* Named without the exercise, so a search for the exercise by name finds only the row. */}
+              <Button
+                variant="ghost"
+                size="icon-lg"
+                aria-label="Ver ficha"
+                aria-describedby={nameId}
+                className="text-muted-foreground shrink-0"
+                onClick={() => onInfo(exercise)}
+              >
+                <InfoIcon className="size-5" />
+              </Button>
+            </li>
+          )
+        })}
       </ul>
     </section>
   )
