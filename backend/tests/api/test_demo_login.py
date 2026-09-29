@@ -33,6 +33,8 @@ def test_demo_signs_in_to_the_demo_account(enabled: TestClient, session: Session
 
     assert response.status_code == 204
     assert "httponly" in response.headers["set-cookie"].lower()
+    # A shared public account is never kept after the browser closes.
+    assert "max-age" not in response.headers["set-cookie"].lower()
     assert enabled.get("/api/auth/me").json()["email"] == DEMO_EMAIL
 
 

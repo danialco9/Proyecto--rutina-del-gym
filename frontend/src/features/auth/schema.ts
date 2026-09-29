@@ -11,6 +11,8 @@ export const loginSchema = z.object({
     .string()
     .min(1, 'Introduce tu contraseña')
     .max(MAX_PASSWORD_LENGTH, 'La contraseña es demasiado larga'),
+  // "Mantener la sesión iniciada": a week renewed while in use, instead of until the browser closes.
+  remember: z.boolean(),
 })
 
 const newPassword = z

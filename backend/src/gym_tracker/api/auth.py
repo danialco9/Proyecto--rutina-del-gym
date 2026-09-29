@@ -16,6 +16,7 @@ from gym_tracker.api.deps import (
     RateLimiterDep,
     SessionDep,
     SettingsDep,
+    set_session_cookie,
 )
 from gym_tracker.config import Settings
 from gym_tracker.mail import Email, Mailer
@@ -37,7 +38,7 @@ from gym_tracker.schemas import (
     RegisterRequest,
     UserRead,
 )
-from gym_tracker.security import create_access_token, verify_password
+from gym_tracker.security import verify_password
 from gym_tracker.users import (
     UserAlreadyExistsError,
     authenticate,
@@ -51,17 +52,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
 
 EMAIL_TAKEN = "An account with this email already exists"
-
-
-def _set_session_cookie(response: Response, user_id: int, settings: Settings) -> None:
-    response.set_cookie(
-        ACCESS_TOKEN_COOKIE,
-        create_access_token(str(user_id), settings),
-        max_age=settings.access_token_ttl_minutes * 60,
-        httponly=True,
-        secure=settings.cookie_secure,
-        samesite="lax",
-    )
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
@@ -82,7 +72,8 @@ def register(
         raise HTTPException(status.HTTP_409_CONFLICT, detail=EMAIL_TAKEN) from error
     # A concurrent registration with the same email fails on the unique constraint.
     commit_or_conflict(session, EMAIL_TAKEN)
-    _set_session_cookie(response, user.id, settings)
+    # Someone who has just signed up is almost always on their own device: keep them in.
+    set_session_cookie(response, user.id, settings, remember=True)
     return UserRead.model_validate(user)
 
 
@@ -105,7 +96,7 @@ def login(
     user = authenticate(session, email=credentials.email, password=credentials.password)
     if user is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
-    _set_session_cookie(response, user.id, settings)
+    set_session_cookie(response, user.id, settings, remember=credentials.remember)
 
 
 @router.post("/demo", status_code=status.HTTP_204_NO_CONTENT)
@@ -122,7 +113,8 @@ def demo_login(
     if user is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Demo not available")
     limiter.hit(Check(DEMO_PER_CLIENT, ("demo", client)))
-    _set_session_cookie(response, user.id, settings)
+    # A shared public account: never kept past closing the browser.
+    set_session_cookie(response, user.id, settings, remember=False)
 
 
 def _send_quietly(mailer: Mailer, email: Email) -> None:
