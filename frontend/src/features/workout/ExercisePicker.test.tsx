@@ -52,18 +52,19 @@ function renderPicker(workouts: Workout[] = []) {
 }
 
 const section = (name: string) => screen.getByRole('region', { name })
+/** The exercise names listed in a section, one per row. */
+const rows = (region: HTMLElement) =>
+  within(region)
+    .getAllByRole('listitem')
+    .map((row) => row.querySelector('.font-medium')?.textContent)
 
 describe('ExercisePicker', () => {
   it('shows recent exercises above the full list', async () => {
     renderPicker([LAST_WORKOUT])
 
     const recent = await screen.findByRole('region', { name: 'Recientes' })
-    expect(
-      within(recent)
-        .getAllByRole('button')
-        .map((button) => button.textContent),
-    ).toEqual(['Prensa de piernasCuádriceps · Máquina'])
-    expect(within(section('Todos los ejercicios')).getAllByRole('button')).toHaveLength(4)
+    expect(rows(recent)).toEqual(['Prensa de piernas'])
+    expect(rows(section('Todos los ejercicios'))).toHaveLength(4)
   })
 
   it('filters by muscle and equipment, and the buttons show the choice', async () => {
@@ -84,7 +85,7 @@ describe('ExercisePicker', () => {
     )
 
     expect(screen.getByRole('button', { name: 'Pecho' })).toHaveAttribute('aria-expanded', 'false')
-    expect(within(section('1 ejercicio')).getByRole('button')).toHaveTextContent('Aperturas con mancuernas')
+    expect(rows(section('1 ejercicio'))).toEqual(['Aperturas con mancuernas'])
   })
 
   it('hides the recents while searching and clears the search with one tap', async () => {
@@ -94,7 +95,7 @@ describe('ExercisePicker', () => {
     await user.type(screen.getByRole('searchbox', { name: 'Buscar ejercicio' }), 'banca')
 
     expect(screen.queryByRole('region', { name: 'Recientes' })).not.toBeInTheDocument()
-    expect(within(section('1 ejercicio')).getByRole('button')).toHaveTextContent('Press banca con barra')
+    expect(rows(section('1 ejercicio'))).toEqual(['Press banca con barra'])
 
     await user.click(screen.getByRole('button', { name: 'Borrar búsqueda' }))
 
@@ -117,5 +118,38 @@ describe('ExercisePicker', () => {
 
     await user.click(bench)
     expect(onSelect).toHaveBeenCalledWith(BENCH)
+  })
+
+  it('opens an exercise sheet with the movement, the muscles and an add button', async () => {
+    const { user, onSelect } = renderPicker()
+    await screen.findByRole('region', { name: 'Todos los ejercicios' })
+
+    await user.click(screen.getByRole('button', { name: 'Ver ficha', description: 'Press banca con barra' }))
+
+    const sheet = await screen.findByRole('dialog', { name: 'Press banca con barra' })
+    const frames = [
+      ...within(sheet).getByRole('img', { name: 'Dibujo del movimiento' }).querySelectorAll('img'),
+    ]
+    expect(frames.map((frame) => frame.getAttribute('src'))).toEqual([
+      '/exercise-art/frames/bench-press-1.webp',
+      '/exercise-art/frames/bench-press-2.webp',
+      '/exercise-art/frames/bench-press-3.webp',
+    ])
+    expect(within(sheet).getByText('Pecho')).toBeInTheDocument()
+    expect(within(sheet).getByText('Barra')).toBeInTheDocument()
+
+    await user.click(within(sheet).getByRole('button', { name: 'Añadir' }))
+    expect(onSelect).toHaveBeenCalledWith(BENCH)
+  })
+
+  it('says so when an exercise has no drawing', async () => {
+    const { user } = renderPicker()
+    await screen.findByRole('region', { name: 'Todos los ejercicios' })
+
+    await user.click(screen.getByRole('button', { name: 'Ver ficha', description: 'Mi press raro' }))
+
+    const sheet = await screen.findByRole('dialog', { name: 'Mi press raro' })
+    expect(within(sheet).getByText('Este ejercicio no tiene dibujo.')).toBeInTheDocument()
+    expect(within(sheet).queryByRole('img', { name: 'Dibujo del movimiento' })).not.toBeInTheDocument()
   })
 })

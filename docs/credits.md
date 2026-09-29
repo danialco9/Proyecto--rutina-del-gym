@@ -18,8 +18,9 @@ The exercise drawings in `frontend/public/exercise-art/` come from
 original poses come from [Everkinetic](https://github.com/everkinetic/data). They are licensed under
 [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 
-Changes: the middle frame of each drawing is trimmed to the figure, scaled down and re-encoded as
-WebP by `frontend/scripts/build_exercise_art.py`, pinned to upstream commit `aac5992`. The resulting
-thumbnails are shared under the same CC BY-SA 4.0 licence. Which drawing each catalog exercise uses
+Changes, made by `frontend/scripts/build_exercise_art.py` (pinned to upstream commit `aac5992`): the
+middle frame of each drawing is trimmed to the figure for the list thumbnails, and all three frames
+are cropped to a shared box for the animation in the exercise sheet; both are scaled down and
+re-encoded as WebP. The results are shared under the same CC BY-SA 4.0 licence. Which drawing each catalog exercise uses
 is listed in `frontend/src/features/workout/exercise-art.json`; some exercises reuse the drawing of a
 close variant.
