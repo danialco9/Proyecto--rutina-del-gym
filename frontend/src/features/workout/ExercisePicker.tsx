@@ -1,5 +1,5 @@
 import { useId, useMemo, useState } from 'react'
-import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, SearchIcon, XIcon } from 'lucide-react'
+import { ArrowLeftIcon, ChevronDownIcon, InfoIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { cn } from 'cn'
 import { QueryStatus } from '@/components/QueryStatus'
 import { Button } from '@/components/ui/button'
@@ -7,8 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet'
 import { EQUIPMENT_LABELS, MUSCLE_GROUP_LABELS } from '@/lib/labels'
 import type { Equipment, Exercise, MuscleGroup } from '@/lib/types'
+import { CreateExerciseSheet } from './CreateExerciseSheet'
 import { ExerciseInfoSheet } from './ExerciseInfoSheet'
 import { ExerciseThumbnail } from './ExerciseThumbnail'
+import { OptionChip } from './OptionChip'
 import { applyFilters, type ExerciseFilters, filterExercises, recentExercises } from './exercise-search'
 import { useExercises, useRecentWorkouts } from './queries'
 
@@ -42,6 +44,7 @@ function PickerBody({ onSelect }: Pick<ExercisePickerProps, 'onSelect'>) {
   const [filters, setFilters] = useState<ExerciseFilters>(NO_FILTERS)
   const [openFilter, setOpenFilter] = useState<FilterKind | null>(null)
   const [info, setInfo] = useState<Exercise | null>(null)
+  const [creating, setCreating] = useState(false)
   const exercises = useExercises()
   // Shares the home screen's query; if it fails, the picker simply shows no recents.
   const workouts = useRecentWorkouts()
@@ -62,10 +65,20 @@ function PickerBody({ onSelect }: Pick<ExercisePickerProps, 'onSelect'>) {
         <SheetClose render={<Button variant="ghost" size="icon-lg" aria-label="Volver" />}>
           <ArrowLeftIcon />
         </SheetClose>
-        <SheetTitle className="text-lg font-semibold">Añadir ejercicio</SheetTitle>
+        <SheetTitle className="flex-1 text-lg font-semibold">Añadir ejercicio</SheetTitle>
         <SheetDescription className="sr-only">
           Busca por nombre o filtra por músculo y material.
         </SheetDescription>
+        <Button
+          variant="ghost"
+          size="lg"
+          aria-label="Crear ejercicio"
+          className="text-primary"
+          onClick={() => setCreating(true)}
+        >
+          <PlusIcon />
+          Crear
+        </Button>
       </header>
 
       <div className="space-y-3 px-4 pb-3">
@@ -114,7 +127,15 @@ function PickerBody({ onSelect }: Pick<ExercisePickerProps, 'onSelect'>) {
         )}
         {exercises.isSuccess &&
           (results.length === 0 ? (
-            <p className="text-muted-foreground px-4 py-6 text-sm">No hay ejercicios que coincidan.</p>
+            <div className="space-y-3 px-4 py-6">
+              <p className="text-muted-foreground text-sm">No hay ejercicios que coincidan.</p>
+              {search.trim() && (
+                <Button size="lg" className="h-12 w-full text-base" onClick={() => setCreating(true)}>
+                  <PlusIcon />
+                  <span className="truncate">Crear «{search.trim()}»</span>
+                </Button>
+              )}
+            </div>
           ) : (
             <ExerciseSection
               title={
@@ -134,6 +155,15 @@ function PickerBody({ onSelect }: Pick<ExercisePickerProps, 'onSelect'>) {
         onClose={() => setInfo(null)}
         onAdd={(exercise) => {
           setInfo(null)
+          onSelect(exercise)
+        }}
+      />
+      <CreateExerciseSheet
+        open={creating}
+        initialName={search}
+        onOpenChange={setCreating}
+        onCreated={(exercise) => {
+          setCreating(false)
           onSelect(exercise)
         }}
       />
@@ -235,22 +265,6 @@ function FilterOptions<T extends string>({ options, selected, onSelect }: Filter
         <OptionChip key={value} label={label} pressed={selected === value} onClick={() => onSelect(value)} />
       ))}
     </>
-  )
-}
-
-function OptionChip({ label, pressed, onClick }: { label: string; pressed: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      aria-pressed={pressed}
-      className={cn(
-        'h-9 rounded-full border px-3.5 text-sm transition-colors',
-        pressed ? 'border-primary bg-primary text-primary-foreground' : 'hover:bg-muted',
-      )}
-      onClick={onClick}
-    >
-      {label}
-    </button>
   )
 }
 
