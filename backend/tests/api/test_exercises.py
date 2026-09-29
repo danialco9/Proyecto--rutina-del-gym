@@ -29,7 +29,14 @@ def test_list_filters_by_muscle_group(auth_client: TestClient) -> None:
 def test_search_by_name(auth_client: TestClient) -> None:
     response = auth_client.get("/api/exercises", params={"q": "jalón"})
 
-    assert {exercise["slug"] for exercise in response.json()} == {"lat-pulldown", "close-grip-lat-pulldown"}
+    assert {exercise["slug"] for exercise in response.json()} == {
+        "lat-pulldown",
+        "close-grip-lat-pulldown",
+        "wide-grip-lat-pulldown",
+        "neutral-grip-lat-pulldown",
+        "reverse-grip-lat-pulldown",
+        "single-arm-lat-pulldown",
+    }
 
 
 def test_seed_catalog_is_idempotent(session: Session) -> None:
