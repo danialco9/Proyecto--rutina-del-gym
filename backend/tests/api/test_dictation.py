@@ -8,7 +8,7 @@ pytestmark = pytest.mark.usefixtures("catalog")
 
 
 def test_reads_a_dictation_against_the_user_catalog(auth_client: TestClient, session: Session) -> None:
-    response = auth_client.post("/api/dictation", json={"text": "prensa 4x10 120\ndominadas 3x8"})
+    response = auth_client.post("/api/dictation", json={"text": "prensa de piernas 4x10 120\ndominadas 3x8"})
 
     assert response.status_code == 200
     exercises = response.json()["exercises"]
