@@ -111,6 +111,25 @@ describe('LoginPage', () => {
     expect(calls.find((call) => call.path === '/auth/login')?.body).toEqual({
       email: 'dani@example.com',
       password: 'correct-horse-battery',
+      remember: false,
     })
+  })
+
+  it('asks the server to keep the session only when the box is ticked', async () => {
+    const calls = mockApi({
+      'GET /auth/me': SIGNED_OUT,
+      'POST /auth/login': { status: 401, body: { detail: 'Invalid email or password' } },
+    })
+    const { user } = renderRoute('/login')
+
+    const keep = await screen.findByRole('checkbox', { name: 'Mantener la sesión iniciada' })
+    expect(keep).not.toBeChecked()
+    await user.type(screen.getByLabelText('Email'), 'dani@example.com')
+    await user.type(screen.getByLabelText('Contraseña'), 'correct-horse-battery')
+    await user.click(keep)
+    await user.click(screen.getByRole('button', { name: 'Entrar' }))
+
+    await screen.findByText('Email o contraseña incorrectos')
+    expect(calls.find((call) => call.path === '/auth/login')?.body).toMatchObject({ remember: true })
   })
 })

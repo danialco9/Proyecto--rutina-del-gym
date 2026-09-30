@@ -45,6 +45,8 @@ class PartialUpdate(InputModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=1, max_length=128)
+    # "Mantener la sesión iniciada"; off unless ticked.
+    remember: bool = False
 
 
 class DeleteAccountRequest(BaseModel):

@@ -1,8 +1,12 @@
+from datetime import UTC, datetime, timedelta
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from gym_tracker.config import Settings
 from gym_tracker.models import User
+from gym_tracker.security import create_access_token
 from gym_tracker.users import UserAlreadyExistsError, create_user
 from tests.api.conftest import TEST_EMAIL, TEST_PASSWORD
 
@@ -55,6 +59,71 @@ def test_logout_clears_session(client: TestClient) -> None:
 
     assert client.post("/api/auth/logout").status_code == 204
     assert client.get("/api/auth/me").status_code == 401
+
+
+@pytest.mark.usefixtures("user")
+@pytest.mark.parametrize(("remember", "persistent"), [(False, False), (True, True)])
+def test_only_a_remembered_login_outlives_the_browser(client: TestClient, remember: bool, persistent: bool) -> None:
+    response = client.post(
+        "/api/auth/login", json={"email": TEST_EMAIL, "password": TEST_PASSWORD, "remember": remember}
+    )
+
+    cookie = response.headers["set-cookie"]
+    # With neither Max-Age nor Expires, the browser drops the cookie when it closes.
+    assert ("Max-Age=604800" in cookie) is persistent
+    assert "expires" not in cookie.lower()
+
+
+def test_signing_up_keeps_the_session(client: TestClient) -> None:
+    response = client.post("/api/auth/register", json={"email": "new@example.com", "password": TEST_PASSWORD})
+
+    assert "Max-Age=604800" in response.headers["set-cookie"]
+
+
+def _sign_in_with(client: TestClient, user: User, settings: Settings, *, remember: bool, age: timedelta) -> None:
+    token = create_access_token(str(user.id), settings, remember=remember, now=datetime.now(UTC) - age)
+    client.cookies.set("access_token", token)
+
+
+@pytest.mark.parametrize(
+    ("remember", "age", "renewed"),
+    [
+        (True, timedelta(hours=2), False),
+        (True, timedelta(days=2), True),
+        (False, timedelta(hours=2), False),
+    ],
+)
+def test_a_remembered_session_is_renewed_once_a_day_while_in_use(
+    client: TestClient, user: User, settings: Settings, *, remember: bool, age: timedelta, renewed: bool
+) -> None:
+    _sign_in_with(client, user, settings, remember=remember, age=age)
+
+    response = client.get("/api/auth/me")
+
+    assert response.status_code == 200
+    assert ("set-cookie" in response.headers) is renewed
+    if renewed:
+        assert "Max-Age=604800" in response.headers["set-cookie"]
+
+
+def test_a_remembered_session_ends_after_a_week_unused(client: TestClient, user: User, settings: Settings) -> None:
+    _sign_in_with(client, user, settings, remember=True, age=timedelta(days=7, minutes=1))
+
+    assert client.get("/api/auth/me").status_code == 401
+
+
+def test_deleting_the_account_clears_the_cookie_even_when_it_was_due_for_renewal(
+    client: TestClient, user: User, settings: Settings
+) -> None:
+    _sign_in_with(client, user, settings, remember=True, age=timedelta(days=2))
+
+    response = client.request("DELETE", "/api/auth/me", json={"password": TEST_PASSWORD})
+
+    assert response.status_code == 204
+    # The renewal is sent too, but browsers apply cookies in order, so the deletion that follows wins.
+    cookies = response.headers.get_list("set-cookie")
+    assert cookies[-1].startswith("access_token=")
+    assert "Max-Age=0" in cookies[-1]
 
 
 def test_create_user_rejects_duplicates_and_short_passwords(session: Session, user: User) -> None:

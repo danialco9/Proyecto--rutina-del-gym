@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Cookie, Depends, HTTPException, Request, status
+from fastapi import Cookie, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 
 from gym_tracker.config import Settings, get_settings
@@ -12,7 +12,7 @@ from gym_tracker.db import get_session
 from gym_tracker.mail import Mailer, get_mailer
 from gym_tracker.models import User
 from gym_tracker.rate_limit import RateLimiter
-from gym_tracker.security import decode_access_token
+from gym_tracker.security import create_access_token, decode_access_token, needs_renewal, token_ttl
 
 ACCESS_TOKEN_COOKIE = "access_token"
 
@@ -20,18 +20,33 @@ SessionDep = Annotated[Session, Depends(get_session)]
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 
 
+def set_session_cookie(response: Response, user_id: int, settings: Settings, *, remember: bool) -> None:
+    """Sign in. A remembered session survives closing the browser; any other lives only until then."""
+    response.set_cookie(
+        ACCESS_TOKEN_COOKIE,
+        create_access_token(str(user_id), settings, remember=remember),
+        max_age=int(token_ttl(settings, remember=True).total_seconds()) if remember else None,
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite="lax",
+    )
+
+
 def get_current_user(
     session: SessionDep,
     settings: SettingsDep,
+    response: Response,
     access_token: Annotated[str | None, Cookie()] = None,
 ) -> User:
     unauthorized = HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    subject = decode_access_token(access_token, settings) if access_token else None
-    if subject is None or not subject.isdigit():
+    token = decode_access_token(access_token, settings) if access_token else None
+    if token is None or not token.subject.isdigit():
         raise unauthorized
-    user = session.get(User, int(subject))
+    user = session.get(User, int(token.subject))
     if user is None:
         raise unauthorized
+    if needs_renewal(token, settings):
+        set_session_cookie(response, user.id, settings, remember=True)
     return user
 
 

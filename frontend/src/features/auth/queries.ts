@@ -42,7 +42,9 @@ export function useCurrentUser() {
 export function useRegister() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (account: LoginInput) => apiFetch<User>('/auth/register', { method: 'POST', body: account }),
+    // A new account always stays signed in, so there is nothing to remember here.
+    mutationFn: (account: Omit<LoginInput, 'remember'>) =>
+      apiFetch<User>('/auth/register', { method: 'POST', body: account }),
     onSuccess: (user) => {
       saveCachedUser(user)
       queryClient.setQueryData(currentUserQueryKey, user)

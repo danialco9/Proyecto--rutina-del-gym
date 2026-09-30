@@ -16,7 +16,11 @@ class Settings(BaseSettings):
     database_url: str
     jwt_secret: SecretStr
     jwt_algorithm: str = "HS256"
+    # "Mantener la sesión iniciada": a week, renewed while in use, so it ends after a week unused.
     access_token_ttl_minutes: int = 60 * 24 * 7
+    token_renewal_after_minutes: int = 60 * 24
+    # Otherwise the cookie goes when the browser closes, and the token lasts half a day at most.
+    session_token_ttl_minutes: int = 60 * 12
     cookie_secure: bool = True
     cors_origins: list[str] = ["http://localhost:5173"]
     rate_limit_enabled: bool = True

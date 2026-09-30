@@ -154,7 +154,9 @@ A few decisions worth calling out:
 
 - **Auth.** Passwords hashed with Argon2; the session JWT is stored in an `HttpOnly` cookie instead
   of `localStorage`, so a XSS bug cannot read it. Login and registration are rate limited
-  (moving window, `429` with `Retry-After`).
+  (moving window, `429` with `Retry-After`). "Mantener la sesión iniciada" gives a week-long
+  cookie that is reissued once a day while in use, so it only ends after a week of inactivity;
+  without it the cookie is session-only and the token lasts 12 hours at most.
 - **Schema migrations.** Alembic runs on container start, so a fresh database and a deployed one
   follow exactly the same path.
 - **Analytics.** Estimated 1RM (Epley), weekly hard sets per muscle group and plateau detection live

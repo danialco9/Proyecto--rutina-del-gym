@@ -43,7 +43,10 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginInput>({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } })
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: '', password: '', remember: false },
+  })
 
   const target = redirectTarget(location.state)
   if (currentUser.data) {
@@ -104,14 +107,19 @@ export function LoginPage() {
           error={errors.password?.message}
           {...register('password')}
         />
-        <p className="-mt-2 text-right text-sm">
+        <div className="-mt-1 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm">
+          {/* The whole label is the tap target, so it is easy to hit with a thumb. */}
+          <label className="flex min-h-11 cursor-pointer items-center gap-2.5">
+            <input type="checkbox" className="accent-primary size-5" {...register('remember')} />
+            Mantener la sesión iniciada
+          </label>
           <Link
             to="/recuperar"
             className="text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
           >
             ¿Olvidaste tu contraseña?
           </Link>
-        </p>
+        </div>
         {errorMessage && (
           <Alert variant="destructive">
             <AlertDescription>{errorMessage}</AlertDescription>
