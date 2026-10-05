@@ -32,6 +32,32 @@ test('opens the app offline for the last confirmed user', async () => {
   expect(await screen.findByRole('navigation', { name: 'Principal' })).toBeInTheDocument()
 })
 
+test('opens the app for the last confirmed user while the server is still waking up', async () => {
+  saveCachedUser(user)
+  // A sleeping server: the request is sent but no answer arrives during the test.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => new Promise(() => {})),
+  )
+
+  renderRoute('/')
+
+  // The app shell is there at once; only each page's own data waits for the server.
+  expect(await screen.findByRole('navigation', { name: 'Principal' })).toBeInTheDocument()
+})
+
+test('a remembered user whose session ended is sent to the login page', async () => {
+  saveCachedUser(user)
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => Promise.resolve(new Response(null, { status: 401 }))),
+  )
+
+  renderRoute('/')
+
+  expect(await screen.findByRole('heading', { name: 'Inicia sesión' })).toBeInTheDocument()
+})
+
 test('offline with no remembered session, says the connection failed, not the server', async () => {
   goOffline()
 
