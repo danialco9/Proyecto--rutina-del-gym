@@ -13,9 +13,13 @@ export { currentUserQueryKey }
  * With no connection the question cannot be asked, so the last confirmed user stands in for the
  * answer: otherwise the app installed on a phone could only ever show its login page in the gym,
  * which is exactly where the connection fails. The stand-in lasts only as long as the outage.
+ *
+ * The same user is also the placeholder while the question is in flight, so a remembered phone
+ * opens straight into the app instead of waiting on "Cargando…" for the server to wake up (the
+ * free host takes about a minute after sleeping). A 401 still signs the user out when it arrives.
  */
 export function useCurrentUser() {
-  return useQuery({
+  return useQuery<User | null>({
     queryKey: currentUserQueryKey,
     queryFn: async ({ signal }) => {
       try {
@@ -34,6 +38,7 @@ export function useCurrentUser() {
         throw error
       }
     },
+    placeholderData: () => loadCachedUser() ?? undefined,
     staleTime: 5 * 60_000,
     retry: false,
   })
